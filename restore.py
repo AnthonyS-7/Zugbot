@@ -76,6 +76,7 @@ def restore_individual_variables(json_input: dict):
     modbot.posts_in_thread_at_last_vc,
     modbot.game_started,
     modbot.action_submission_open,
+    modbot.all_abilities_are_disabled,
     modbot.game_end_announced_already
 
     Also, modbot.game_restored_from_file is set to True.
@@ -102,6 +103,7 @@ def restore_individual_variables(json_input: dict):
     modbot.game_started = json_input["modbot.game_started"]
     modbot.action_submission_open = json_input["modbot.action_submission_open"]
     modbot.game_end_announced_already = json_input["modbot.game_end_announced_already"]
+    modbot.all_abilities_are_disabled = json_input["modbot.all_abilities_are_disabled"]
     modbot.game_restored_from_file = True
     config.game_start_time = json_input["config.game_start_time"]
 
@@ -121,6 +123,7 @@ def save_json():
         "modbot.game_started" : modbot.game_started,
         "modbot.action_submission_open" : modbot.action_submission_open,
         "modbot.game_end_announced_already" : modbot.game_end_announced_already,
+        "modbot.all_abilities_are_disabled" : modbot.all_abilities_are_disabled,
         "config.game_start_time" : config.game_start_time
     }
     json_file = open(GAMESTATE_JSON_PATH, 'w')

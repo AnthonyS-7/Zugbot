@@ -111,6 +111,14 @@ def close_nominations(host_account, gamestate: game_state.GameState):
     gamestate.nominations_open = False
     fol_interface.create_post("Nominations are now closed.")
 
+def disable_all_abilities(host_account, gamestate: game_state.GameState):
+    modbot.all_abilities_are_disabled = True
+    fol_interface.create_post("Abilities have been disabled.")
+
+def reenable_abilities(host_account, gamestate: game_state.GameState):
+    modbot.all_abilities_are_disabled = False
+    fol_interface.create_post("Abilities have been enabled.")
+
 reset_nominations_ability = Ability( # resets all nominations, but doesn't change who can nominate
     ability_name="Reset Nominations",
     syntax_parser=syn.syntax_parser_constructor(command_name="reset", parameter_list=[]),
@@ -154,14 +162,30 @@ close_nominations_ability = Ability(  # closes nominations
     ignore_action_deadline=True
 )
 
+disable_all_abilities_ability = Ability(
+    ability_name="Disable All Abilities",
+    syntax_parser=syn.syntax_parser_constructor(command_name="disable", parameter_list=[]),
+    use_action_instant=disable_all_abilities,
+    ignore_action_deadline=True
+)
+
+reenable_abilities_ability = Ability(
+    ability_name="Reenable Abilities",
+    syntax_parser=syn.syntax_parser_constructor(command_name="enable", parameter_list=[]),
+    use_action_instant=reenable_abilities,
+    ignore_action_deadline=True
+)
+
 
 if not config.require_nominations_before_voting:
     host_abilities = [
         do_substitution_ability,
         do_modkill_ability,
+        disable_all_abilities_ability,
+        reenable_abilities_ability
     ]
 else:
-    host_abilities = [do_substitution_ability, do_modkill_ability,
+    host_abilities = [do_substitution_ability, do_modkill_ability, disable_all_abilities_ability, reenable_abilities_ability,
                       reset_nominations_ability, set_nomination_ability, remove_nomination_ability, restore_nomination_ability,
                       open_nominations_ability, close_nominations_ability]
 if config.do_votecounts:

@@ -73,6 +73,8 @@ if first_import:
     for player in config.playerlist_usernames:
         capitalization_fixer[player.lower()] = player
 
+    all_abilities_are_disabled = False
+
 def get_mafia_list(playerlist_player_objects: list[p.Player]) -> list[str]:
     """
     Returns the usernames of all mafia members.
@@ -343,8 +345,8 @@ def process_redirects(action_parameters: list, ability: p.Ability, no_redirects=
 
 async def process_post(post: post_class.Post, gamestate: game_state.GameState, action_submission_open: bool) -> None:
     player_object = gamestate.get_player_object_living_players_only(username=post.poster)
-    if player_object is None and post.poster.lower() not in config.host_usernames:
-        print("This player does not exist, or is not alive.")
+    if (player_object is None or all_abilities_are_disabled) and post.poster.lower() not in config.host_usernames:
+        print("This player does not exist, or is not alive, or all non-host abilities are disabled.")
         return None
     is_host_post = player_object is None
     for ability in (player_object.abilities if not is_host_post else host.host_abilities):
