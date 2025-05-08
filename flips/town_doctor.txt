@@ -1,0 +1,5 @@
+# [color=00ff00] Town Doctor [/color]
+
+**Protect (Night, Infinite-Shot, Once per Cycle, Privately Submitted, Self-Target Disallowed)** - Use /protect [player] to prevent them from dying tonight.
+
+Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.

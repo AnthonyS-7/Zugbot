@@ -1,0 +1,5 @@
+# [color=ff0000] Mafia JOAT [/color]
+
+**JOAT (Night, 1-Shot per Option, Once per Night, Privately Submitted)** - You have 3 actions: Cop, Doctor, and Vigilante; you can use each option once per game. Use "/[option] [target]" to choose a target. [option] should be "investigate", "protect", or "shoot". You cannot self-protect.
+
+Reach parity with the town.

@@ -1,0 +1,5 @@
+# [color=00ff00] Town Day Vigilante [/color]
+
+**Daykill (Day, Infinite-Shot, Once per Day, Privately Submitted)** - Shoot a player with /shoot [player]. They die.
+
+Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.

@@ -1,0 +1,5 @@
+# [color=ff0000] Mafia Suicide Bomber [/color]
+
+**Bomber (Day, 1-Shot, Once-Per-Cycle, Publicly Submitted, Self-Targeting Disallowed)** - Publicly ping the host with "/bomb [playername]". You and them with both die. Note that both of these kills will deal 1 damage to each player, and both can be affected by protection or similar effects. 
+
+Reach parity with the town.

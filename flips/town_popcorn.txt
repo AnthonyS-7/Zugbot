@@ -1,0 +1,4 @@
+# [color=00ff00] Town [/color]
+
+If you are shot, you live and get the gun. If you shoot a Town-aligned player, you die.
+Eliminate all Mafia.

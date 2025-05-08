@@ -1,0 +1,5 @@
+# [color=ff0000] Mafia Doctor [/color]
+
+**Protect (Night, Infinite-Shot, Once per Cycle, Privately Submitted, Self-Target Disallowed)** - Use /protect [player] to prevent them from dying tonight.
+
+Reach parity with the town.

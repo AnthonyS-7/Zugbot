@@ -1,0 +1,5 @@
+[center]
+
+![Icon_fortune_teller|150x150](upload://lsLVNtHa6MXV3ckGCsGzS8Cx202.png)
+**Fortune Teller (Townsfolk):** Each night, choose 2 players: you learn if either is a Demon. There is a good player that registers as a Demon to you.
+[/center]

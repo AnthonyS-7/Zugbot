@@ -1,0 +1,5 @@
+# [color=00ff00] Town Suicide Bomber [/color]
+
+**Bomber (Day, 1-Shot, Once-Per-Cycle, Publicly Submitted, Self-Targeting Disallowed)** - Publicly ping the host with "/bomb [playername]". You and them with both die. Note that both of these kills will deal 1 damage to each player, and both can be affected by protection or similar effects. 
+
+Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.

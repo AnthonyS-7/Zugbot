@@ -1,0 +1,5 @@
+# [color=red] Godfather [/color]
+
+**Undercover** (Passive) - You register as Town to alignment checks.
+
+Reach parity with the town.

@@ -1,0 +1,4 @@
+[center]
+![Icon_amnesiac|150x150](upload://lQK9u4iWoBOYGJRdAvyxYL30weW.png)
+**Amnesiac (Townsfolk):** You do not know what your ability is. Each day, privately guess what it is: you learn how accurate you are.
+[/center]

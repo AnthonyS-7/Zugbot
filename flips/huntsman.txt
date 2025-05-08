@@ -1,0 +1,4 @@
+[center]
+![Icon_huntsman|150x150](upload://8qv7mPGhfiFpWTqre9IhBxZBptA.png)
+**Huntsman (Townsfolk):** Once per game, at night, choose a living player: the Damsel, if chosen, becomes a not-in-play Townsfolk. [+the Damsel]
+[/center]

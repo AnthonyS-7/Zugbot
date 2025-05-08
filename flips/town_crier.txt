@@ -1,0 +1,4 @@
+[center]
+![Icon_towncrier|150x150](upload://1NAlbh4wOG8QZyPUXtp2JbcUoGR.png)
+ **Town Crier(Townsfolk):** Each night*, you learn if a Minion nominated today.
+[/center]

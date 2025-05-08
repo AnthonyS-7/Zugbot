@@ -1,0 +1,5 @@
+# [color=ff0000] Mafia Day Vigilante [/color]
+
+**Daykill (Day, Infinite-Shot, Once per Day, Privately Submitted)** - Shoot a player with /shoot [player]. They die.
+
+Reach parity with the town.

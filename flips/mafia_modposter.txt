@@ -1,0 +1,8 @@
+# [color=ff0000] Mafia Modposter [/color]
+
+**Modpost (Day, Infinite-Shot, Infinite-Per-Cycle, Privately Submitted)** - An infinite number of times per day, create a post with "/modpost [message]". Zugbot will post your message*. Note that line breaks do not end your message.
+
+*Messages cannot include [votecount] or [alive] tags - these will not be posted. It will be marked that your post is a modpost.
+
+
+Reach parity with the town.

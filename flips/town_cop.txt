@@ -1,0 +1,5 @@
+# [color=00ff00] Town Cop [/color]
+
+**Investigate (Night, Infinite-Shot, Once per Cycle, Privately Submitted, Self-Target Disallowed)** - Use /investigate [player] to learn target player's alignment.
+
+Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.

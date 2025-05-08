@@ -1,0 +1,5 @@
+# [color=ff0000] Mafia Cop [/color]
+
+**Investigate (Night, Infinite-Shot, Once per Cycle, Privately Submitted, Self-Target Disallowed)** - Use /investigate [player] to learn target player's alignment.
+
+Reach parity with the town.
