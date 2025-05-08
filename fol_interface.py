@@ -417,7 +417,7 @@ def get_votecount(votecount_dict: dict, nominated_players: list[str] | None = No
             votes[num] = resolve_substring_alias(votes[num], playerlist=playerlist)
             votes[num] = NOT_VOTING if votes[num] == NO_EXE and not config.allow_no_exe else votes[num]
             votes[num] = NOT_VOTING if ((votes[num].lower() not in [x.lower() for x in nominated_players]) 
-                                        and config.require_nominations_before_voting) \
+                                        and config.is_botf) \
                                         and votes[num] != NO_EXE \
                                     else votes[num]
         votes = list(set(votes))
@@ -623,12 +623,12 @@ async def post_votecount(players_to_kill: list[str] | None = None,
 
     print(f"Votecount is: {votecount}")
     string_to_post = f'## Current {"Votecount" if not say_voutecount else "Voutecount"}\n'
-    if config.require_nominations_before_voting:
+    if config.is_botf:
         assert nominator_to_nominee_dict is not None
         string_to_post += write_botc_style_votecount(votecount, nominator_to_nominee_dict)
         string_to_post += '\n [details=""]\n'
     string_to_post += write_normal_votecount(votecount)
-    if config.require_nominations_before_voting:
+    if config.is_botf:
         string_to_post += "\n[/details]\n"
     
     await do_api_call(lambda : fluent_discourse_client.posts._(post_to_get_vc_for_post_id).json.put(
@@ -808,7 +808,7 @@ async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=
     for link in discord_links:
         full_pm += link + "\n"
 
-    if not config.require_nominations_before_voting: # if not BOTF, wolves should be told teammates
+    if not config.is_botf: # if not BOTF, wolves should be told teammates
         if len(teammates) != 0:
             full_pm += "Teammates: \n"
         for teammate in teammates:

@@ -188,7 +188,7 @@ class GameState:
         return player in self.get_all_nominated_players()
     
     def get_all_nominated_players(self):
-        if not config.require_nominations_before_voting:
+        if not config.is_botf:
             return []
         result = []
         for player in self.current_players:
@@ -251,7 +251,7 @@ class GameState:
         Returns a dictionary of nominations, of the form nominations[player who nominated] == nominee.
         This dictionary is sorted by nomination order.
         """
-        if not config.require_nominations_before_voting:
+        if not config.is_botf:
             return dict()
         result = []
         for player in self.current_players:

@@ -81,7 +81,7 @@ def get_default_abilities():
     if config.do_votecounts:
         abilities_list.append(request_votecount_ability)
         abilities_list.append(request_voutecount_ability)
-    if config.require_nominations_before_voting:
+    if config.is_botf:
         abilities_list.append(nominate_ability)
     return abilities_list
 
@@ -130,7 +130,7 @@ class Player:
         self.focus_increase_on_redirection = focus_increase_on_redirection
         self.unresolved_actions = [] if unresolved_actions is None else unresolved_actions
         self.voting_power = voting_power
-        if config.require_nominations_before_voting:
+        if config.is_botf:
             self.can_nominate = True
             self.target_of_nomination: Player | None = None
         assert self.focus_increase_on_redirection > 0

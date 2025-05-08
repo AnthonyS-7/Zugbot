@@ -177,7 +177,7 @@ reenable_abilities_ability = Ability(
 )
 
 
-if not config.require_nominations_before_voting:
+if not config.is_botf:
     host_abilities = [
         do_substitution_ability,
         do_modkill_ability,

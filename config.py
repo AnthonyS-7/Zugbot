@@ -44,7 +44,7 @@ if times_accessed == 0:
     allow_multivoting = True
     allow_no_exe = True
     no_exe_wins_ties = True
-    require_nominations_before_voting = True #Intended for BOTC. TODO: test if it works when True
+    is_botf = True #Intended for BOTC. TODO: test if it works when True
 
     mafia_discord_link = ""
 
