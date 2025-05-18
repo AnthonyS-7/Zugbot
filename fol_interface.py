@@ -1,7 +1,5 @@
-
 with open("discourse_api_key.txt", 'r') as discourse_api_key_file:
     api_key = discourse_api_key_file.read()
-
 
 NOT_VOTING = "NO_VOTE"
 UNKNOWN_VOTE = "unknown"
@@ -99,20 +97,24 @@ def user_exists(username: str) -> bool:
     except:
         return False
 
-async def process_substitution(current_username: str, new_username: str):
+async def process_substitution(current_username: str, new_username: str, role_pm: str, player_is_mafia: bool, teammates: list[str] | None = None):
     """
-    Adds new_username to current_username's role PM, and updates username_to_role_pm_id accordingly.
+    Creates a new role PM for the new user, and fixes username_to_role_pm_id accordingly.
 
     Do not call with invalid usernames. It will break.
     """
-    role_pm_id = username_to_role_pm_id[current_username.lower()]
-    username_to_role_pm_id[new_username.lower()] = role_pm_id
+    # role_pm_id = username_to_role_pm_id[current_username.lower()]
+    # username_to_role_pm_id[new_username.lower()] = role_pm_id
+    # del username_to_role_pm_id[current_username.lower()]
+
+    # await do_api_call(lambda : fluent_discourse_client.t._(str(role_pm_id)).invite.post({"user" : new_username, "custom_message" : ""}), ignore_return=True)
+    # await do_api_call(lambda : fluent_discourse_client.t._(str(role_pm_id))._("remove-allowed-user").put({"username" : current_username}), ignore_return=True)
+
+    await give_role_pm(new_username, role_pm, config.game_name, 
+                                        discord_links=[config.mafia_discord_link] if player_is_mafia else [], 
+                                        teammates=teammates if player_is_mafia else None)
     del username_to_role_pm_id[current_username.lower()]
 
-    await do_api_call(lambda : fluent_discourse_client.t._(str(role_pm_id)).invite.post({"user" : new_username, "custom_message" : ""}), ignore_return=True)
-    await do_api_call(lambda : fluent_discourse_client.t._(str(role_pm_id))._("remove-allowed-user").put({"username" : current_username}), ignore_return=True)
-
-    
 async def run_fol_poster():
     global post_response_list
     while True:
@@ -293,7 +295,8 @@ def resolve_substring_alias(voted_player: str, playerlist: list[str], for_voteco
     been through the regex:
 
     ```
-    vote_cleaner = re.compile(r"[^A-Za-z0-9\\-\\._]") <br> vote_string = re.sub(vote_cleaner, "", vote_string)
+    vote_cleaner = re.compile(r"[^A-Za-z0-9\\-\\._]")
+    vote_string = re.sub(vote_cleaner, "", vote_string)
     ```
 
     ---
@@ -880,6 +883,17 @@ def topic_is_pm(topic_number_parameter: str | int, username: str):
 
 def topic_is_main_thread(topic_number_parameter: str | int):
     return config.topic_id == int(topic_number_parameter)
+
+async def ensure_all_players_exist_and_are_spelled_correctly(playerlist: list[str]):
+    await asyncio.sleep(1)
+    for player in playerlist:
+        print(f"{player=}")
+        corrected_capitalization, success = await correct_capilatization_in_discourse_username(player)
+        print(f"{corrected_capitalization=}")
+        if not success or player != corrected_capitalization:
+            return False
+    return True
+
 
 
 # print(fluent_discourse_client.posts._(str(1456634)).json.get())

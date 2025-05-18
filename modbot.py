@@ -419,7 +419,7 @@ async def run_action_processor():
     
 def process_substitution_for_mafia_and_player_lists_and_nightkill(current_player: str, new_player: str):
     """
-    Corrects playerlist_usernames and mafia_list to include the new player instead of the current player.
+    Corrects playerlist_usernames and capitalization_fixer to include the new player instead of the current player.
     """
     global nightkill_choice
     # global mafia_list
@@ -433,6 +433,10 @@ def process_substitution_for_mafia_and_player_lists_and_nightkill(current_player
     if current_player.lower() == nightkill_choice.lower():
         nightkill_choice = new_player
 
+    del capitalization_fixer[current_player.lower()]
+    capitalization_fixer[new_player.lower()] = new_player
+
+
 async def wait_for_time(time_datetime: datetime.datetime):
     """
     Given a datetime, sleeps until that time is reached.
@@ -443,7 +447,7 @@ async def wait_for_time(time_datetime: datetime.datetime):
     print(f"Sleeping for {seconds_to_sleep} seconds")
     await asyncio.sleep(seconds_to_sleep)
 
-async def start_game():
+async def start_game() -> bool:
     """
     This method:
 
@@ -457,6 +461,10 @@ async def start_game():
     fol_interface.create_post(get_pregame_post_string(), topic_id_parameter=config.topic_id)
     await fol_interface.close_or_open_thread(close=True)
     await asyncio.sleep(5)
+    playerlist_is_valid = await fol_interface.ensure_all_players_exist_and_are_spelled_correctly(playerlist=config.playerlist_usernames)
+    if not playerlist_is_valid:
+        print("Playerlist is not valid! Game start cancelled.")
+        return False
     await give_role_pms(playerlist=config.playerlist_usernames, gamestate=gamestate)
     if config.game_start_time != '':
         game_start_time = datetime.datetime.strptime(config.game_start_time, "%Y-%m-%d %H:%M")
@@ -465,6 +473,7 @@ async def start_game():
     else:
         game_start_time = datetime.datetime.now()
         config.game_start_time = datetime.datetime.strftime(game_start_time, "%Y-%m-%d %H:%M")
+    return True
 
 def get_game_start_time() -> datetime.datetime:
     return datetime.datetime.strptime(config.game_start_time, "%Y-%m-%d %H:%M")
@@ -546,7 +555,9 @@ async def run_modbot():
     
 
     if not game_started: # When run_modbot is called from a restored game, game_started may be True
-        await start_game()
+        started_successfully = await start_game()
+        if not started_successfully:
+            return
 
     game_start_time = get_game_start_time()
     game_started = True

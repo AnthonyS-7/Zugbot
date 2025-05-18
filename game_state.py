@@ -105,6 +105,7 @@ class GameState:
     def get_flip_path(self, username: str) -> str:
         player_object = self.get_player_object_original_players(username)
         if player_object is None:
+            print("The flip path of a non-existant player was requested. This is not allowed.")
             raise GamestateException("The flip path of a non-existant player was requested. This is not allowed.")
         return player_object.rolecard_path
 
@@ -198,6 +199,14 @@ class GameState:
         
     def get_nominator_to_nominee_dict(self) -> dict[str, str]:
         return self.get_nominations()
+    
+    def print_playerlists(self) -> None:
+        print("ORIGINAL PLAYERS: ")
+        for player in self.original_players:
+            print(player.username)
+        print("CURRENT PLAYERS: ")
+        for player in self.current_players:
+            print(player.username)
     
     # def create_log(self, log_class: type, sources: list[p.Player] | None, sinks: list[p.Player], action_types: list[str], was_instant: bool):
         """

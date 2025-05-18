@@ -31,6 +31,7 @@ def substitution_syntax_parser(post: p.Post):
     return [current_player, new_player]
 
 async def do_substitution(host_name_or_player: 'str | player.Player', gamestate: "game_state.GameState", current_player: 'player.Player', new_player: str):    
+    role_pm = modbot.get_flip(current_player.username, gamestate)
     current_player_username = current_player.username # needed because current_player.username gets changed later
     new_player, successful_name_resolution = await fol_interface.correct_capilatization_in_discourse_username(new_player)
 
@@ -51,12 +52,21 @@ async def do_substitution(host_name_or_player: 'str | player.Player', gamestate:
         print(f"Attempted to add {new_player} to the game, but they are not a valid FoL user. If this is in error, try again.")
         return
 
-    gamestate.substitute_player(current_username=current_player_username, new_username=new_player)
-    await fol_interface.process_substitution(current_username=current_player_username, new_username=new_player)
+    if not gamestate.substitute_player(current_username=current_player_username, new_username=new_player):
+        print("Error when substituting player! Things are likely broken in the gamestate object.")
+
+    player_is_mafia = current_player.alignment == c.MAFIA
+    await fol_interface.process_substitution(current_username=current_player_username, 
+                                             new_username=new_player, 
+                                             role_pm=role_pm,
+                                             player_is_mafia=player_is_mafia,
+                                             teammates=modbot.get_mafia_list(gamestate.original_players) if player_is_mafia else None)
     fol_interface.create_post(string_to_post=f"# @{new_player} has replaced in for @{current_player_username}. \n\n Do not discuss replacements.")
     modbot.process_substitution_for_mafia_and_player_lists_and_nightkill(current_player=current_player_username, new_player=new_player)
 
     await fol_interface.post_votecount(replacements=[(current_player_username, new_player)], nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominator_to_nominee_dict(),)
+
+    gamestate.print_playerlists()
 
 async def do_modkill(host_name_or_player: 'str | player.Player', gamestate: "game_state.GameState", modkilled_player: 'player.Player'):
     global possible_modkill_name
