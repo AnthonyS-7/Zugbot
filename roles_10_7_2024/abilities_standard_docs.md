@@ -6,6 +6,10 @@ Need:
 - way to do NAR
 - standard modifiers
 
+# Standard Roles List
+- Visitor (Visits a player, no other effects)
+- Non-visiting Alignment Cop (Learns player's alignment, does not visit)
+
 
 # Standard Modifier List
 - Modifiers on Players:
