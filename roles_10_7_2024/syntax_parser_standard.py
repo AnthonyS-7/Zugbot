@@ -4,10 +4,17 @@ from roles_folder.roles_exceptions import ParsingException, ActionException
 import game_state
 import modbot
 
-
 SYNTAX_PARSER_NONNEGATIVE_INT = (r"([0-9]+)", 0)
 SYNTAX_PARSER_PLAYERNAME = (r"([^ \\\n]+)", 1)
 SYNTAX_PARSER_NO_SPACE_STRING = (r"([^ \\\n]+)", 2) # Numbers are just so that these all do not equal eachother
+
+class SyntaxParser: # TODO: Replace the functional mess with this class. Currently, this class is unused
+    def __init__(self, command_name: str, parameter_list: list[tuple[str, int]]) -> None:
+        self.command_name = command_name
+        self.parameter_list = parameter_list
+    
+    def parse_discourse_post(self, post: 'p.Post'):
+        return _syntax_parser_template_new(post, self.command_name, self.parameter_list)
 
 def syntax_parser_constructor(command_name: str, parameter_list: list[tuple[str, int]]):
     """
@@ -46,5 +53,4 @@ def _syntax_parser_template_new(post: p.Post, command_name: str, parameter_list:
                 raise ParsingException("This player does not exist!")
         final_result.append(this_parameter)
     return final_result
-
 

@@ -186,7 +186,6 @@ reenable_abilities_ability = Ability(
     ignore_action_deadline=True
 )
 
-
 if not config.is_botf:
     host_abilities = [
         do_substitution_ability,

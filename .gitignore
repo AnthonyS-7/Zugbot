@@ -2,3 +2,5 @@ discord_token.txt
 discourse_api_key.txt
 gamestate.json
 gamestate.pkl
+roles_folder/__pycache__/roles_exceptions.cpython-312.pyc
+*.pyc

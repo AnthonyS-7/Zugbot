@@ -1,6 +1,3 @@
-# [color=red] Mafia [/color]
-
-Reach parity with the town. You will die if shot.
-
-If the game starts in Day phase, you can choose the starting gunbearer with /choose [playername].
-If the game starts in Night phase, the starting player is chosen with the nightkill.
+[size=5]**[color=red]Popcat :O, Mafia Goon[/color]**[/size]
+![image|497x500, 50%](upload://nHSpYKDxBWVjUEMvaUuCT9UBjad.jpeg)
+**Win condition:** You win when the number of living mafia members is equal to or more than the number of living town.

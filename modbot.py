@@ -56,13 +56,11 @@ if first_import:
 
     # mafia_list : list[str] = []
 
-    playerlist_player_objects : list['p.Player'] = []
+    playerlist_player_objects : list['p.Player'] = [] # This list is not restored by restore.py so it shouldn't be used directly except when initializing the gamestate
 
     for num in range(len(rolelist)):
         username = config.playerlist_usernames[num]
         playerlist_player_objects.append(rolelist[num](username))
-        # if playerlist_player_objects[num].alignment == c.MAFIA:
-        #     mafia_list.append(username)
 
     gamestate = game_state.GameState([player for player in playerlist_player_objects], # copying the list
                                     is_day=config.first_phase_is_day,
@@ -75,15 +73,12 @@ if first_import:
 
     all_abilities_are_disabled = False
 
-def get_mafia_list(playerlist_player_objects: list[p.Player]) -> list[str]:
+def get_mafia_list(gamestate: game_state.GameState) -> list[str]:
     """
     Returns the usernames of all mafia members.
     """
-    return list(map(
-                lambda player : player.username, # Maps players to usernames
-                list(filter(lambda player : player.alignment == c.MAFIA, playerlist_player_objects)) # Filters for mafia players
-            ))
-
+    mafia_players = gamestate.filter_players(filter_func=lambda player : player.alignment == c.MAFIA, living_players_only=False)
+    return list(map(lambda player : player.username, mafia_players))
 
 async def announce_game_end():
     global continue_posting_vcs
@@ -94,14 +89,14 @@ async def announce_game_end():
         return None
     await asyncio.sleep(5)
     # print(mafia_list)
-    await fol_interface.announce_winner(gamestate.is_town_win(), mafia_members=get_mafia_list(playerlist_player_objects))
+    await fol_interface.announce_winner(gamestate.is_town_win(), mafia_members=get_mafia_list(gamestate))
 
-    playerlist_player_objects.sort(key=lambda player : player.alignment)
-    fol_interface.post_all_roles(
-        list(map(
+    roles_list_to_post = list(map(
             lambda player : [player.username, get_flip(player.username, gamestate), "MAFIA" if player.alignment == c.MAFIA else "TOWN"], 
-            playerlist_player_objects
-        )))
+            gamestate.original_players
+        ))
+    roles_list_to_post.sort(key=lambda role : role[2]) # sort by alignment
+    fol_interface.post_all_roles(roles_list_to_post)
 
     continue_posting_vcs = False
     game_end_announced_already = True
@@ -272,7 +267,7 @@ async def give_role_pms(playerlist: list[str], gamestate: game_state.GameState):
         player_is_mafia = player_object is not None and player_object.alignment == c.MAFIA
         await fol_interface.give_role_pm(player, flip, config.game_name, 
                                          discord_links=[config.mafia_discord_link] if player_is_mafia else [], 
-                                         teammates=get_mafia_list(playerlist_player_objects) if player_is_mafia else None)
+                                         teammates=get_mafia_list(gamestate) if player_is_mafia else None)
         
 async def run_vc_bot():
     global posts_in_thread_at_last_vc
@@ -503,7 +498,7 @@ async def do_day_start(game_start_time: datetime.datetime) -> tuple[datetime.dat
     if day_start_time < datetime.datetime.now() and game_restored_from_file:
         game_restored_from_file = False
         return actions_close_time, thread_close_time
-    for player in playerlist_player_objects:
+    for player in gamestate.original_players:
         player.do_day_start_changes()
     fol_interface.start_day(gamestate.get_living_players(), gamestate.phase_count)
     await fol_interface.close_or_open_thread(close=False)

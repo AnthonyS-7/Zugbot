@@ -1,4 +1,3 @@
-# [color=00ff00] Town [/color]
-
-If you are shot, you live and get the gun. If you shoot a Town-aligned player, you die.
-Eliminate all Mafia.
+[size=5]**[color=]Popcat :), Vanilla Town[/color]**[/size]
+![image|503x500, 50%](upload://rhjgMo5ZV96JMPjeCcmhArC5y66.jpeg)
+**Win condition:** You win when all the mafia members are dead.

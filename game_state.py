@@ -5,6 +5,7 @@ import random
 import player as p
 import constants as c
 import config
+from typing import Callable
 
 gamestate_file_name = "gamestate.json"
 
@@ -40,6 +41,14 @@ class GameState:
         """
         town_players = list(filter(lambda player : player.alignment == c.TOWN, self.current_players))
         return random.choice(town_players).username
+    
+    def filter_players(self, filter_func: Callable, living_players_only: bool) -> 'list[p.Player]':
+        result = []
+        for player in (self.original_players if not living_players_only else self.current_players):
+            if filter_func(player):
+                result.append(player)
+        return result
+
 
     def player_exists(self, player: str, count_dead_as_existing=False) -> bool:
         for player_ in (self.current_players if not count_dead_as_existing else self.original_players):

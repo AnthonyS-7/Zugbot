@@ -1,7 +1,7 @@
 def get_rolelist():
     import roles
     import roles_folder.botc as botc
-    rolelist = botc.get_botc_rolelist()
+    rolelist = [roles.make_town_popcorn] * 7 + [roles.make_mafia_popcorn] * 4
     # This is the rolelist that will be used for the game.
     return rolelist
 
@@ -11,7 +11,7 @@ times_accessed = 0 # here so that the written defaults are only created once, ev
 if times_accessed == 0:
     # main bot config:
 
-    game_start_time = "2025-05-08 05:50" # If not '', then the game will start at this time. Also, all phases
+    game_start_time = "2025-06-11 09:30" # If not '', then the game will start at this time. Also, all phases
     # will have start and end times calculated off of this time. This is in 24 hour time. This should be in the timezone
     # specified in utc_offset.
     # Example format: "2024-08-13 08:00"
@@ -22,7 +22,7 @@ if times_accessed == 0:
     # lock thread slightly early, which would be bad.
 
     day_length = 60 * 24 * 365 # in minutes
-    night_length = 48 * 60 # in minutes
+    night_length = 30 # in minutes
     votecount_time_interval = 120 # How many minutes should be between votecount posts
     votecount_post_interval = 10 # How many posts should be between votecount posts
     action_deadline = 2 # The number of minutes before phase at which point actions will stop being accepted. Must be at least 1.
@@ -31,20 +31,20 @@ if times_accessed == 0:
     action_processor_sleep_seconds = 5 # The number of seconds the action processor sleeps between consecutive calls of 
     # checking notifications.
 
-    host_usernames = ["Zugzwang"] # Handles substitutions, modkills, etc
+    host_usernames = ["Zugzwang", "Garfooled", "Zwischenzug"] # Handles substitutions, modkills, etc
     original_host_usernames = host_usernames # Should only be accessed when outputting the host usernames
-    playerlist_usernames = ["Zug", "Zwischenzug", "Eigenzug", "AlsoZug", "Mittens", "Unzug", "NotAZugAlt", 'NotAZug', 'Eigenalt']
+    playerlist_usernames = ["Zug", "Zwischenzug", "Eigenzug", "AlsoZug", "Mittens", "Unzug", "NotAZugAlt", 'NotAZug', 'Eigenalt', 'secret_cookie_thread', 'zug_alt_account']
                             # ["Eigenzug", "Ash", "Eddie", "L.una"] #["Zugzwang", "ElizaThePsycho", "Chomps", "May", "Ash", "L.una", "Atlas"]
     # playerlist_usernames = ["Zugzwang", "Zwischenzug", "wrongboy"] # remove this line!!!!
     host_usernames = list(map(lambda x : x.lower(), host_usernames))
 
     topic_id = 9145
-    game_name = "botc randing test 3"
+    game_name = "popcorn test"
 
     allow_multivoting = True
     allow_no_exe = True
     no_exe_wins_ties = True
-    is_botf = True #Intended for BOTC. TODO: test if it works when True
+    is_botf = False #Intended for BOTC. TODO: test if it works when True
 
     mafia_discord_link = ""
 
@@ -81,12 +81,12 @@ if times_accessed == 0:
 
     # ---------------
     # Oddities config:
-    do_votecounts = True # If this is False, votecount posts will be 
+    do_votecounts = False # If this is False, votecount posts will be 
         # mostly disabled (only occuring at day start / substitutions / modkills). 
         # Also, at these times, the votecount will be reset. Useful for Popcorn and the like.
         # This also disables the elimination (when combined with allow_no_exe, which is required).
-    first_phase_is_day = True # Whether the first phase should be day or night. True if day.
-    first_phase_count = 1 # The number for the first phase.
+    first_phase_is_day = False # Whether the first phase should be day or night. True if day.
+    first_phase_count = 0 # The number for the first phase.
 
     debug_print_all_posts = True
 
