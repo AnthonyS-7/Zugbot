@@ -31,9 +31,6 @@ intended_player_cap = 3
 ALLOWED_SETUPS = [setup.game_name.lower() for setup in turbo_setup.setups]
 ALLOWED_TOPIC_IDS = [9524, 9145]
 
-nya_responses = ["NYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "nya meow purr", "nya"]
-
-
 async def do_turbos():
     global turbo_task
     global posting_queue_task
@@ -67,14 +64,6 @@ def start_game(discard_1, discard_2, post: post.Post):
         assert posting_queue_task is not None
         turbo_task.cancel()
         posting_queue_task.cancel()
-
-def nya_at_user(discard_1, discard_2, post: post.Post):
-    string_to_post = random.choice(nya_responses)
-    fol_interface.create_post(string_to_post, topic_id_parameter=post.topicNumber)    
-
-def add_nya_message(discard_1, discard_2, message: str, post: post.Post):
-    nya_responses.append(message)
-    fol_interface.create_post("Nya response added (resets when bot is restarted).", topic_id_parameter=post.topicNumber)
 
 def join_game(discard_1, discard_2, post: post.Post):
     global playerlist
@@ -214,16 +203,6 @@ def get_turbo_out_of_game_abilities() -> list["player.Ability"]:
         syntax_parser=syn.syntax_parser_constructor(command_name="start", parameter_list=[]),
         use_action_instant=start_game,
     )
-    nya_ability = make_simplified_ability(
-        ability_name="Nya",
-        syntax_parser=syn.syntax_parser_constructor(command_name="nya", parameter_list=[]),
-        use_action_instant=nya_at_user,
-    )
-    add_nya_ability = make_simplified_ability(
-        ability_name="Nya",
-        syntax_parser=syn.syntax_parser_constructor(command_name="mya", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING]),
-        use_action_instant=add_nya_message,
-    )
     modify_ability = make_simplified_ability(
         ability_name="Modify Game",
         syntax_parser=syn.syntax_parser_constructor(command_name="modify", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING, syn.SYNTAX_PARSER_NO_SPACE_STRING]),
@@ -235,7 +214,7 @@ def get_turbo_out_of_game_abilities() -> list["player.Ability"]:
         use_action_instant=display_current_settings
     )
 
-    return [help_ability, signup_ability, quit_ability, start_ability, nya_ability, add_nya_ability, modify_ability, display_ability]
+    return [help_ability, signup_ability, quit_ability, start_ability, modify_ability, display_ability]
 
 async def process_turbo_post(post: post.Post, out_of_game_abilities: list[player.Ability]):
     for ability in out_of_game_abilities:        
