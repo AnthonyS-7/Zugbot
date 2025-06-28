@@ -13,4 +13,6 @@ You will also need to create a Discord bot, and place its token in discord_token
 
 # Usage
 
-To start a new game, choose the desired settings in config.py, and then run main.py. If the bot needs to be restarted without resetting the game, this can be done with restore.py.
+To start a new game, choose the desired settings in config.py, and then run main.py. 
+
+The bot will save the gamestate every so often (the exact timing is decided in config.py). If you would like to restart the bot from the last save point, you can do so with restore.py.
