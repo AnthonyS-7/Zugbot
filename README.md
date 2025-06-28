@@ -11,3 +11,6 @@ For examples of Zugbot running, see:
 To use Zugbot, you will need an API key from a site admin. This API key must be placed in a file named discourse_api_key.txt.
 You will also need to create a Discord bot, and place its token in discord_token.txt.
 
+# Usage
+
+To start a new game, choose the desired settings in config.py, and then run main.py. If the bot needs to be restarted without resetting the game, this can be done with restore.py.
