@@ -3,7 +3,7 @@ import modbot
 import asyncio
 import config
 
-if not config.is_botf:
+if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     with open("discord_token.txt", 'r') as token_file:
         token = token_file.read()
 

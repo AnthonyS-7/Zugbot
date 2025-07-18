@@ -10,8 +10,8 @@ import types
 import re
 import roles_folder.roles_exceptions as r
 import roles_folder.roles_templates as rt
-import roles_10_7_2024.syntax_parser_standard as syn
-import roles_10_7_2024.acknowledge_and_verify_standard as aav
+import role_standards.syntax_parser_standard as syn
+import role_standards.verify_standard as aav
 from player import Ability
 import player
 import constants as c
@@ -30,7 +30,7 @@ def substitution_syntax_parser(post: p.Post):
     new_player = target.group(2)
     return [current_player, new_player]
 
-async def do_substitution(host_name_or_player: 'str | player.Player', gamestate: "game_state.GameState", current_player: 'player.Player', new_player: str):    
+async def do_substitution(player_object: 'player.Player | None', gamestate: "game_state.GameState", current_player: 'player.Player', new_player: str):    
     role_pm = modbot.get_flip(current_player.username, gamestate)
     current_player_username = current_player.username # needed because current_player.username gets changed later
     new_player, successful_name_resolution = await fol_interface.correct_capilatization_in_discourse_username(new_player)
@@ -60,15 +60,15 @@ async def do_substitution(host_name_or_player: 'str | player.Player', gamestate:
                                              new_username=new_player, 
                                              role_pm=role_pm,
                                              player_is_mafia=player_is_mafia,
-                                             teammates=modbot.get_mafia_list(gamestate.original_players) if player_is_mafia else None)
+                                             teammates=modbot.get_mafia_list(gamestate) if player_is_mafia else None)
     fol_interface.create_post(string_to_post=f"# @{new_player} has replaced in for @{current_player_username}. \n\n Do not discuss replacements.")
     modbot.process_substitution_for_mafia_and_player_lists_and_nightkill(current_player=current_player_username, new_player=new_player)
 
-    await fol_interface.post_votecount(replacements=[(current_player_username, new_player)], nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominator_to_nominee_dict(),)
+    await fol_interface.post_votecount(replacements=[(current_player_username, new_player)], nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations(),)
 
     gamestate.print_playerlists()
 
-async def do_modkill(host_name_or_player: 'str | player.Player', gamestate: "game_state.GameState", modkilled_player: 'player.Player'):
+async def do_modkill(player_object: 'None | player.Player', gamestate: "game_state.GameState", modkilled_player: 'player.Player'):
     global possible_modkill_name
     if possible_modkill_name.lower() != modkilled_player.username.lower():
         possible_modkill_name = modkilled_player.username
@@ -78,21 +78,23 @@ async def do_modkill(host_name_or_player: 'str | player.Player', gamestate: "gam
     gamestate.process_modkill(modkilled_player.username)
     fol_interface.send_message("# You have been modkilled.", modkilled_player.username, priority=1)
 
-    await fol_interface.post_votecount(players_to_kill=[modkilled_player.username], nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominator_to_nominee_dict())
+    await fol_interface.post_votecount(players_to_kill=[modkilled_player.username], nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations())
 
 do_substitution_ability = Ability(
     ability_name="Substitute",
-    syntax_parser=syn.syntax_parser_constructor(command_name="sub", 
+    syntax_parser=syn.SyntaxParser(command_name="sub", 
                                                 parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME, 
                                                                 syn.SYNTAX_PARSER_NO_SPACE_STRING]),
-    use_action_instant=do_substitution,
+    action=player.Action(do_substitution),
+    is_instant=True
 )
 
 do_modkill_ability = Ability(
     ability_name="Modkill",
-    syntax_parser=syn.syntax_parser_constructor(command_name="modkill",
+    syntax_parser=syn.SyntaxParser(command_name="modkill",
                                                 parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
-    use_action_instant=do_modkill,
+    action=player.Action(do_modkill),
+    is_instant=True
 )
 
 def reset_nominations(host_account, gamestate: game_state.GameState):
@@ -131,58 +133,67 @@ def reenable_abilities(host_account, gamestate: game_state.GameState):
 
 reset_nominations_ability = Ability( # resets all nominations, but doesn't change who can nominate
     ability_name="Reset Nominations",
-    syntax_parser=syn.syntax_parser_constructor(command_name="reset", parameter_list=[]),
-    use_action_instant=reset_nominations,
+    syntax_parser=syn.SyntaxParser(command_name="reset", parameter_list=[]),
+    action=player.Action(reset_nominations),
+    is_instant=True,
     ignore_action_deadline=True
 ) 
 
 set_nomination_ability = Ability( # sets one players as having nominated another player
     ability_name="Set Nomination",
-    syntax_parser=syn.syntax_parser_constructor("set", [syn.SYNTAX_PARSER_PLAYERNAME, syn.SYNTAX_PARSER_PLAYERNAME]),
-    use_action_instant=set_nomination,
+    syntax_parser=syn.SyntaxParser("set", [syn.SYNTAX_PARSER_PLAYERNAME, syn.SYNTAX_PARSER_PLAYERNAME]),
+    action=player.Action(set_nomination),
+    is_instant=True,
     ignore_action_deadline=True
 )
 
 remove_nomination_ability = Ability(  # removes one player's ability to nominate
     ability_name="Remove Nomination Power",
-    syntax_parser=syn.syntax_parser_constructor(command_name="kill", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
-    use_action_instant=remove_nomination_power,
+    syntax_parser=syn.SyntaxParser(command_name="kill", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
+    action=player.Action(remove_nomination_power),
+    is_instant=True,
+
     ignore_action_deadline=True
 
 )
 
 restore_nomination_ability = Ability(  # restores one player's ability to nominate
     ability_name="Restore Nomination Power",
-    syntax_parser=syn.syntax_parser_constructor(command_name="revive", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
-    use_action_instant=restore_nomination_power,
+    syntax_parser=syn.SyntaxParser(command_name="revive", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
+    action=player.Action(restore_nomination_power),
+    is_instant=True,
     ignore_action_deadline=True
 )
 
 open_nominations_ability = Ability(  # opens nominations
     ability_name="Open Nominations",
-    syntax_parser=syn.syntax_parser_constructor(command_name="open", parameter_list=[]),
-    use_action_instant=open_nominations,
+    syntax_parser=syn.SyntaxParser(command_name="open", parameter_list=[]),
+    action=player.Action(open_nominations),
+    is_instant=True,
     ignore_action_deadline=True
 )
 
 close_nominations_ability = Ability(  # closes nominations
     ability_name="Close Nominations",
-    syntax_parser=syn.syntax_parser_constructor(command_name="close", parameter_list=[]),
-    use_action_instant=close_nominations,
+    syntax_parser=syn.SyntaxParser(command_name="close", parameter_list=[]),
+    action=player.Action(close_nominations),
+    is_instant=True,
     ignore_action_deadline=True
 )
 
 disable_all_abilities_ability = Ability(
     ability_name="Disable All Abilities",
-    syntax_parser=syn.syntax_parser_constructor(command_name="disable", parameter_list=[]),
-    use_action_instant=disable_all_abilities,
+    syntax_parser=syn.SyntaxParser(command_name="disable", parameter_list=[]),
+    action=player.Action(disable_all_abilities),
+    is_instant=True,
     ignore_action_deadline=True
 )
 
 reenable_abilities_ability = Ability(
     ability_name="Reenable Abilities",
-    syntax_parser=syn.syntax_parser_constructor(command_name="enable", parameter_list=[]),
-    use_action_instant=reenable_abilities,
+    syntax_parser=syn.SyntaxParser(command_name="enable", parameter_list=[]),
+    action=player.Action(reenable_abilities),
+    is_instant=True,
     ignore_action_deadline=True
 )
 

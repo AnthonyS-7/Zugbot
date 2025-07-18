@@ -11,15 +11,11 @@ times_accessed = 0 # here so that the written defaults are only created once, ev
 if times_accessed == 0:
     # main bot config:
 
-    game_start_time = "2025-06-11 09:30" # If not '', then the game will start at this time. Also, all phases
+    game_start_time = "2025-06-12 11:05" # If not '', then the game will start at this time. Also, all phases
     # will have start and end times calculated off of this time. This is in 24 hour time. This should be in the timezone
     # specified in utc_offset.
     # Example format: "2024-08-13 08:00"
     utc_offset = "-04:00" # The offset from UTC, in +-HH:MM. Example format: "-05:00"
-    timezone_format_code = "EST" # Currently unused.
-    eod_close_delay_seconds = 1 # The number of seconds to delay the EOD thread close by. This does not affect the timer,
-    # but does affect the manual close. This is to be used when there's a potential for minor offsets in time to make the bot
-    # lock thread slightly early, which would be bad.
 
     day_length = 60 * 24 * 365 # in minutes
     night_length = 30 # in minutes
@@ -31,17 +27,17 @@ if times_accessed == 0:
     action_processor_sleep_seconds = 5 # The number of seconds the action processor sleeps between consecutive calls of 
     # checking notifications.
 
-    host_usernames = ["Zugzwang", "Garfooled", "Zwischenzug"] # Handles substitutions, modkills, etc
+    host_usernames = ["Zugzwang", "Zwischenzug"] # Handles substitutions, modkills, etc
     original_host_usernames = host_usernames # Should only be accessed when outputting the host usernames
-    playerlist_usernames = ["Zug", "Zwischenzug", "Eigenzug", "AlsoZug", "Mittens", "Unzug", "NotAZugAlt", 'NotAZug', 'Eigenalt', 'secret_cookie_thread', 'zug_alt_account']
+    playerlist_usernames = ["Zug", "Zwischenzug", "Eigenzug", "AlsoZug", "Mittens", "joycat", "wrongboy", 'L.una', 'Chomps', 'Atlas', 'Ash']
                             # ["Eigenzug", "Ash", "Eddie", "L.una"] #["Zugzwang", "ElizaThePsycho", "Chomps", "May", "Ash", "L.una", "Atlas"]
     # playerlist_usernames = ["Zugzwang", "Zwischenzug", "wrongboy"] # remove this line!!!!
     host_usernames = list(map(lambda x : x.lower(), host_usernames))
 
-    topic_id = 9145
+    topic_id = 9524
     game_name = "popcorn test"
 
-    allow_multivoting = True
+    allow_multivoting = False
     allow_no_exe = True
     no_exe_wins_ties = True
     is_botf = False #Intended for BOTC. TODO: test if it works when True

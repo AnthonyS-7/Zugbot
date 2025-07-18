@@ -19,9 +19,12 @@ import fol_interface
 import config
 import game_state
 from typing import Callable
-import roles_10_7_2024.can_use_now_standard as can_use
-import roles_10_7_2024.syntax_parser_standard as syn
+import role_standards.can_use_now_standard as can_use
+import role_standards.syntax_parser_standard as syn
+import role_standards.verify_standard as verify_standard
 import constants as c
+import inspect
+from roles import ParsingException
 
 # nomination info:
 # players have: can_nominate, target_of_nomination, nomination_order
@@ -48,12 +51,12 @@ def get_votecount_ability():
     """
     return Ability(
         ability_name="Votecount Request",
-        syntax_parser=votecount_request_syntax_parser,
-        can_use_now=can_use.DAY,
-        use_action_instant=lambda playername, gamestate : fol_interface.post_votecount(nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominator_to_nominee_dict()),
+        syntax_parser=syn.SyntaxParser("votecount", parameter_list=[]),
+        verifier=verify_standard.DAY,
+        action=Action(lambda playername, gamestate : fol_interface.post_votecount(nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations())),
+        is_instant=True,
         ignore_action_deadline=True
     )
-
 
 def get_default_abilities():
     """
@@ -63,19 +66,21 @@ def get_default_abilities():
     for example.
     """
     request_votecount_ability = get_votecount_ability()
-    request_voutecount_ability = Ability(
+    request_voutecount_ability = Ability( # Easter egg
         ability_name="Voutecount Request",
-        syntax_parser=syn.syntax_parser_constructor(command_name="voutecount", parameter_list=[]),
-        can_use_now=can_use.DAY,
-        use_action_instant=lambda playername, gamestate : fol_interface.post_votecount(nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominator_to_nominee_dict(),
-                                                                                       say_voutecount=True)
+        syntax_parser=syn.SyntaxParser(command_name="voutecount", parameter_list=[]),
+        verifier=verify_standard.DAY,
+        action=Action(lambda playername, gamestate : fol_interface.post_votecount(nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations(),
+                                                                                       say_voutecount=True)),
+        is_instant=True
     )
     nominate_ability = Ability(
         ability_name="Nominate",
-        syntax_parser=syn.syntax_parser_constructor("nominate", [syn.SYNTAX_PARSER_PLAYERNAME]),
+        syntax_parser=syn.SyntaxParser("nominate", [syn.SYNTAX_PARSER_PLAYERNAME]),
         submission_location=c.IN_THREAD,
-        can_use_now=can_use.DAY,
-        use_action_instant=nomination_use_action_instant,
+        verifier=verify_standard.DAY,
+        action=Action(nomination_use_action_instant),
+        is_instant=True
     )
     abilities_list = []
     if config.do_votecounts:
@@ -125,17 +130,19 @@ class Player:
         self.protection = 0
         self.abilities = ([] if abilities is None else abilities) + get_default_abilities()
         self.willpower = willpower
+        self.voting_power = voting_power
+
         self.redirect_player = redirect_player
         self.redirection_strength = redirection_strength
         self.focus_increase_on_redirection = focus_increase_on_redirection
+
         self.unresolved_actions = [] if unresolved_actions is None else unresolved_actions
-        self.voting_power = voting_power
+
         if config.is_botf:
             self.can_nominate = True
             self.target_of_nomination: Player | None = None
         assert self.focus_increase_on_redirection > 0
-              
-
+        
     def redirect_action(self, target_focus: float) -> bool:
         """
         Returns True if the action should be redirected; False otherwise.
@@ -212,32 +219,130 @@ class Player:
     
     def __setstate__(self, state):
         self.__dict__.update(state)
-        
+
+async def _add(action_1: 'Action', action_2: 'Action', player_object: Player, gamestate: game_state.GameState, *args):
+    await action_1.run_action(player_object, gamestate, *args)
+    await action_2.run_action(player_object, gamestate, *args)
+
+# type checking nonsense start
+from typing import Callable
+from typing_extensions import Concatenate, ParamSpec
+P = ParamSpec("P")
+Action_Function = Callable[Concatenate[Player, game_state.GameState, P], typing.Any]
+# type checking nonsense end
+
+class Action:
+    """
+    This is a wrapper class for the functions that execute actions. This wrapper allows adding functions together with '+', 
+    to mean two actions get put together into a single ability.
+    """
+    def __init__(self, use_action: Action_Function[P]) -> types.NoneType:
+        self.use_action = use_action
+    
+    def __add__(self, other: 'Action'):
+        new_use_action = lambda player_object, gamestate, *args : _add(self, other, player_object, gamestate, *args)
+        return Action(new_use_action)
+    
+    async def run_action(self, player_object: Player, gamestate: game_state.GameState, *args):
+        possible_awaitable = self.use_action(player_object, gamestate, *args) # type: ignore
+        if inspect.isawaitable(possible_awaitable):
+            await possible_awaitable
+
+class AbilityRestrictions:
+    """
+    This class bundles together restrictions, such as x-shot and Cycling.
+    """
+    def __init__(self, shot_count=-1, cycling : list[str] | None = None, cooldown=1, multitask_cost: dict[str, float] | None = None) -> None:
+        """
+        shot_count is the number of shots this ability has. -1 for infinite shot.
+
+        cycling should be a list of strings - these strings indicate which other abilities it must cycle with.
+        For example, to make a JOAT that must cycle abilities, making each ability have cycling=['joat'] works.
+        More generally, if for two abilities A and B and a string x, we have:
+          (x in A.ability_restrictions.cycling) and (x in B.ability_restrictions.cycling)
+          then A cannot be used unless A.use_count <= B.use_count.
+
+        cooldown is the number of cycles the player must wait before using the ability again. 
+        0 means there is no cooldown (and therefore the ability can be used multiple times in a phase),
+        1 is the typical cooldown of using the ability once each cycle,
+        2 means there must be a cycle in between uses, etc.
+        0 can only be used with instant actions.
+
+        multitask_cost is how much the ability 'costs' to multitask. In any phase, for any string s, 
+        the sum (over all abilities ab that a player has) of ab.ability_restrictions.multitask_cost[s] must be
+        less than or equal to 1.
+        """
+        self.shot_count = shot_count
+        self.cycling = [] if cycling is None else cycling
+        self.cooldown = cooldown
+        self.multitask_cost: dict[str, float] = dict() if multitask_cost is None else multitask_cost
+
+def is_submission_location_correct(submission_location: int, topic_number_parameter: str | int, username: str):
+    if int(submission_location) == c.IN_THREAD:
+        return fol_interface.topic_is_main_thread(topic_number_parameter)
+    elif int(submission_location) == c.IN_PM:
+        return fol_interface.topic_is_pm(topic_number_parameter, username=username)
+    return False
+
+def process_redirects(action_parameters: list, ability: 'Ability', no_redirects=False) -> list:
+    """
+    This method takes the parameters for an action, and an Ability, and redirects the action's target(s) if needed.
+
+    action_parameters are the parameters for the action, and ability is the Ability.
+
+    This method returns a copy of action_parameters, with the redirects made.
+
+    no_redirects should only be used for false actions (such as modkills and substitutions).
+
+    """
+    if no_redirects:
+        return action_parameters.copy()
+    result = action_parameters.copy()
+    for index in range(len(result)):
+        if type(result[index]) == Player:
+            current_focus = ability.target_focus
+            current_player = result[index]
+            assert type(current_player) == Player
+            no_more_redirects = False
+            while not no_more_redirects:
+                next_player = current_player.get_redirect(current_focus)
+                current_focus += current_player.get_redirect_focus_increase()
+                no_more_redirects = current_player == next_player
+                current_player = next_player
+            result[index] = current_player
+    return result
+
+
 class Ability:
     def __init__(self, 
                  ability_name: str, 
-                 syntax_parser: Callable[[p.Post], list],
-                 submission_location: int = c.IN_PM, 
-                 acknowledge_and_verify: Callable = lambda *args : None,
-                 can_use_now: Callable[[Player, "Ability", "game_state.GameState"], bool] = lambda *args : True,
-                 use_action_instant: Callable = lambda *args : None, 
-                 use_action_phase_end: Callable = lambda *args : None, 
+                 syntax_parser: 'syn.SyntaxParser',
+                 action: 'Action',
+                 verifier: 'verify_standard.Verifier' = verify_standard.ALWAYS_TRUE,
+                 submission_location: int = c.IN_PM,
+                #  acknowledge_and_verify: Callable = lambda *args : None,
+                #  can_use_now: Callable[[Player, "Ability", "game_state.GameState"], bool] = lambda *args : True,
+                 is_instant: bool = False,
+                 ability_restrictions: AbilityRestrictions | None = None,
+                #  use_action_instant: Callable = lambda *args : None, 
+                #  use_action_phase_end: Callable = lambda *args : None, 
                  ability_priority: float = 0, 
-                 willpower_required_instant: float | None = None, 
-                 willpower_required_phase_end: float | None = None, 
+                 willpower_required: float | None = None, 
                  target_focus: float = 0, 
                  action_types: list[str] = [c.FALSE_ACTION],
                  ignore_action_deadline=False) -> None:
         """
+        TODO 6-12-2025: Update this documentation
+
         ability_name is the name of the ability.
 
-        syntax_parser should take the original post as a Post object, and return a list of arguments for the action.
-        If the post cannot be parsed, it should throw a ParsingException.
-        If syntax_parser is returning a player, it should return the player object, not the username. If the username is invalid,
-        throw a ParsingException.
+        syntax_parser - This parses a post to determine if it used the action, and the parameters/targets of the action.
+            See the SyntaxParser class for more info.
 
         submission_location is the required place the action must be submitted. For example, if an action
         must be submitted in thread, but it's submitted in a PM instead, it should be ignored.
+
+        verifier 
 
         can_use_now is a function that takes:
            - the acting player's Player object as the first parameter
@@ -321,31 +426,81 @@ class Ability:
 
         """
         self.ability_name = ability_name
-        self.syntax_parser = syntax_parser
+        self.is_instant = is_instant
+        self.ignore_action_deadline = ignore_action_deadline
         self.submission_location = submission_location
-        self.can_use_now = can_use_now
-        self.acknowledge_and_verify = acknowledge_and_verify
-        self.use_action_instant = use_action_instant
-        self.use_action_phase_end = use_action_phase_end
         self.ability_priority = ability_priority
-        self.willpower_required_instant = willpower_required_instant
-        self.willpower_required_phase_end = willpower_required_phase_end
+        self.willpower_required = willpower_required
         self.target_focus = target_focus
         self.action_types = action_types
-        self.ignore_action_deadline = ignore_action_deadline
-        self.instant_use_count = 0
-        self.phase_end_use_count = 0
+
+        if ability_restrictions is not None:
+            self.ability_restrictions = ability_restrictions
+        elif is_instant:
+            self.ability_restrictions = AbilityRestrictions(cooldown=0)
+        else:
+            self.ability_restrictions = AbilityRestrictions()
+
+        self.syntax_parser = syntax_parser
+        self.verifier = verifier
+        self.action = action
+
+        # self.can_use_now = can_use_now
+        # self.acknowledge_and_verify = acknowledge_and_verify
+        
+        self.use_count = 0
 
         self.id = get_next_id()
-
         all_abilities.append(self)
 
+    def attempt_to_use_ability(self, post: p.Post, player: Player, gamestate: game_state.GameState, action_submission_open: bool, is_host_post: bool = False):
+        """
+        post: The post that may have attempted to use this ability
+        player: The player that attempted to use an ability
+        gamestate: The gamestate
+        action_submission_open: Whether action deadline is passed
+        is_host_post: Whether this is run by the host (removes many checks that could otherwise prevent the ability from happening)
+        """
+        if not is_host_post and not self.ignore_action_deadline and not action_submission_open:
+            print("Action submission is not open, and this ability does not ignore the action deadline.")
+            return
+        if not is_host_post and not is_submission_location_correct(self.submission_location, post.topicNumber, post.poster):
+            print(f"Submission location for {self.ability_name} is wrong")
+            return
+        print(f"Submission location for {self.ability_name} is correct (or is a host command)")
 
-def votecount_request_syntax_parser(post: p.Post):
-    if post.content.find("/votecount") == -1:
-        raise ParsingException("This post did not request a votecount.")
-    return []
+        try:
+            parameters = self.syntax_parser.parse_discourse_post(post)
+        except ParsingException as e:
+            print(f"This message could not be parsed the ability: {self.ability_name}. Error below: ")
+            print(e.args)
+            return
+        print(f"Input for {self.ability_name} parsed successfully; the parameters are {parameters}")
 
+        if not is_host_post:
+            success, required_condition = self.verifier.verify(player, self, gamestate,
+                                                            self.syntax_parser.parameter_list, parameters) # TODO: make verifier enforce ability_restrictions
+            if not success:
+                fol_interface.send_message(required_condition, player.username, priority=5)
+                print(f"This ability failed verification with message: {required_condition}")
+                return
+        print("Ability passed verification!")
+
+        if not is_host_post:
+            fol_interface.send_message("Action processed.", player.username, priority=5)
+        
+        if self.is_instant and (is_host_post or self.willpower_required is None or player.willpower >= self.willpower_required):
+            parameters = process_redirects(parameters, self, no_redirects=is_host_post)
+            print(f"Running instant action with {len(parameters)} parameters, plus the player and gamestate")
+            await self.action.run_action(player, gamestate, *parameters) # type: ignore
+            self.use_count += 1
+
+        if is_host_post:
+            print("Note that host abilities cannot have delayed effects at the moment."
+                    "If the host ability that was just used was purely instant, disregard this message.")
+        elif not self.is_instant:
+            player.record_action(self.id, parameters)
+    
 class UnresolvedPhaseEndAction:
     """
     This class records an action that needs to be resolved at the end of the phase.
@@ -362,5 +517,3 @@ class UnresolvedPhaseEndAction:
 
 
 
-    
-        

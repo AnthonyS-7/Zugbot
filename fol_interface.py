@@ -278,7 +278,7 @@ def create_post(string_to_post: str, topic_id_parameter: int | str = -1, priorit
         print(string_to_post)
     if topic_id_parameter == -1:
         topic_id_parameter = config.topic_id
-    string_to_post += f"\n<aaa{os.urandom(15).hex()}aaa>\n"
+    string_to_post += f"\n<aaa{os.urandom(16).hex()}aaa>\n"
     to_post_queue.put(([priority, posts_added_to_queue], {"raw" : string_to_post, "topic_id" : topic_id_parameter}))
     posts_added_to_queue += 1
 

@@ -43,7 +43,7 @@ def daykill_player(player_doing_kill: str, gamestate: game_state.GameState, targ
     """
     if player_doing_kill.lower() == target_username.lower():
         raise r.ActionException(f"You cannot self-target with a suicide bomb.")
-    if not gamestate.is_valid_kill(target_username):
+    if not gamestate.player_exists(target_username):
         raise r.ActionException(f"{target_username} is not a valid bomb target.")
     
     player_doing_kill_object = gamestate.get_player_object_living_players_only(player_doing_kill)

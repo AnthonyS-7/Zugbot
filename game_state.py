@@ -13,28 +13,16 @@ class GamestateException(Exception):
     pass
 
 class GameState:
-    def __init__(self, players: list["p.Player"], is_day: bool, phase_count: int, wincon_is_parity: bool, game_log: None | list["RecordedEvent"] = None) -> None:
+    def __init__(self, players: list["p.Player"], is_day: bool, phase_count: int, wincon_is_parity: bool) -> None:
         self.original_players = players
         self.current_players = [player for player in players]
         self.is_day = is_day
         self.phase_count = phase_count
         self.wincon_is_parity = wincon_is_parity
-        self.game_log = [] if game_log == None else game_log
+        # self.game_log = [] if game_log == None else game_log
         self.nomination_counter = 0 # Number of nominations done so far (for BOTC only)
         self.nominations_open = True # If nominations are currently open (for BOTC only)
-    
-    # def player_is_town(self, player: str) -> bool:
-    #     for player_ in self.current_players:
-    #         if player_.username.lower() == player.lower():
-    #             return player_.alignment == c.TOWN
-    #     return False
-    
-    # def player_is_mafia(self, player: str) -> bool:
-    #     for player_ in self.current_players:
-    #         if player_.username.lower() == player.lower():
-    #             return player_.alignment == c.MAFIA
-    #     return False
-    
+        
     def get_random_town(self) -> str:
         """
         Throws an exception if there are 0 town members alive.
@@ -49,7 +37,6 @@ class GameState:
                 result.append(player)
         return result
 
-
     def player_exists(self, player: str, count_dead_as_existing=False) -> bool:
         for player_ in (self.current_players if not count_dead_as_existing else self.original_players):
             if player_.username.lower() == player.lower():
@@ -59,17 +46,14 @@ class GameState:
     def is_valid_nightkill(self, player_to_kill: str) -> bool:
         player = self.get_player_object_living_players_only(player_to_kill)
         return player is not None and player.alignment != c.MAFIA
-    
-    def is_valid_kill(self, player_to_kill: str) -> bool:
-        return self.player_exists(player_to_kill)
-    
+        
     def process_elimination(self, player: str) -> bool:
         """
         Returns True if the player was valid.
 
         This is similar to process_death, but ignores all protection.
         """
-        if self.is_valid_kill(player):
+        if self.player_exists(player):
             for num, possible_eliminated_player in enumerate(self.current_players):
                 if player.lower() == possible_eliminated_player.username.lower():
                     self.current_players.pop(num)
@@ -205,10 +189,7 @@ class GameState:
             if player.target_of_nomination is not None:
                 result.append(player.target_of_nomination.username)
         return result
-        
-    def get_nominator_to_nominee_dict(self) -> dict[str, str]:
-        return self.get_nominations()
-    
+            
     def print_playerlists(self) -> None:
         print("ORIGINAL PLAYERS: ")
         for player in self.original_players:
@@ -218,51 +199,51 @@ class GameState:
             print(player.username)
     
     # def create_log(self, log_class: type, sources: list[p.Player] | None, sinks: list[p.Player], action_types: list[str], was_instant: bool):
-        """
-        Creates a log, and adds it to the end of the game_log.
+        # """
+        # Creates a log, and adds it to the end of the game_log.
 
-        Parameters -
+        # Parameters -
 
-        log_class: The class of the log - currently, Visit and Feedback are the classes.
-        sources: The players this event originated from. Can be None.
-        sinks: The players this event "went to" (in the case of Visit, this means the targets, 
-            in the case of Feedback, this means those who received the feedback, etc)
-        action_types: The type(s) of action that caused this event
-        was_instant: True if this was caused by an instant action, False if it was at phase end
-        """
+        # log_class: The class of the log - currently, Visit and Feedback are the classes.
+        # sources: The players this event originated from. Can be None.
+        # sinks: The players this event "went to" (in the case of Visit, this means the targets, 
+        #     in the case of Feedback, this means those who received the feedback, etc)
+        # action_types: The type(s) of action that caused this event
+        # was_instant: True if this was caused by an instant action, False if it was at phase end
+        # """
     #     assert issubclass(log_class, RecordedEvent)
     #     #log = log_class(sources=sources, sinks=sinks, action_types=action_types, phase_count=self.phase_count, was_day=self.is_day, was_instant=was_instant)
     #     self.game_log.append(log)
     
     
-    def record_feedback(self, feedback_string: str, generating_players: list["p.Player"], receiving_players: list["p.Player"], action_types: list[str], was_instant: bool):
-        """
-        Creates a Feedback log, and adds it to the end of the game_log.
+    # def record_feedback(self, feedback_string: str, generating_players: list["p.Player"], receiving_players: list["p.Player"], action_types: list[str], was_instant: bool):
+    #     """
+    #     Creates a Feedback log, and adds it to the end of the game_log.
 
-        Parameters -
+    #     Parameters -
 
-        feedback_string: The exact feedback received
-        generating_players: The players this event originated from. Can be empty.
-        receiving_players: The players that received the feedback; can be empty (though that would be strange)
-        action_types: The type(s) of action that caused this event
-        was_instant: True if this was caused by an instant action, False if it was at phase end
-        """
-        log = Feedback(feedback_string=feedback_string, generating_players=generating_players, receiving_players=receiving_players, action_types=action_types, phase_count=self.phase_count, was_day=self.is_day, was_instant=was_instant)
-        self.game_log.append(log)
+    #     feedback_string: The exact feedback received
+    #     generating_players: The players this event originated from. Can be empty.
+    #     receiving_players: The players that received the feedback; can be empty (though that would be strange)
+    #     action_types: The type(s) of action that caused this event
+    #     was_instant: True if this was caused by an instant action, False if it was at phase end
+    #     """
+    #     log = Feedback(feedback_string=feedback_string, generating_players=generating_players, receiving_players=receiving_players, action_types=action_types, phase_count=self.phase_count, was_day=self.is_day, was_instant=was_instant)
+    #     self.game_log.append(log)
     
-    def record_visit(self, visitors: list["p.Player"], targets: list["p.Player"], action_types: list[str], was_instant: bool) -> None:
-        """
-        Creates a Visit log, and adds it to the end of the game_log.
+    # def record_visit(self, visitors: list["p.Player"], targets: list["p.Player"], action_types: list[str], was_instant: bool) -> None:
+    #     """
+    #     Creates a Visit log, and adds it to the end of the game_log.
 
-        Parameters -
+    #     Parameters -
 
-        visitors: The players who are visiting. Can be empty, though that would be strange.
-        targets: The players that were visited; can be empty, though that would be strange.
-        action_types: The type(s) of action that this visit
-        was_instant: True if this was caused by an instant action, False if it was at phase end
-        """
-        log = Visit(visitors=visitors, targets=targets, action_types=action_types, phase_count=self.phase_count, was_day=self.is_day, was_instant=was_instant)
-        self.game_log.append(log)
+    #     visitors: The players who are visiting. Can be empty, though that would be strange.
+    #     targets: The players that were visited; can be empty, though that would be strange.
+    #     action_types: The type(s) of action that this visit
+    #     was_instant: True if this was caused by an instant action, False if it was at phase end
+    #     """
+    #     log = Visit(visitors=visitors, targets=targets, action_types=action_types, phase_count=self.phase_count, was_day=self.is_day, was_instant=was_instant)
+    #     self.game_log.append(log)
 
     def get_nominations(self) -> dict[str, str]:
         """
@@ -289,32 +270,32 @@ class GameState:
         for player in self.current_players:
             player.target_of_nomination = None
 
-class RecordedEvent:
-    def __init__(self, sources: list["p.Player"] | None, sinks: list["p.Player"] | None, action_types: list[str], phase_count: int, was_day: bool, was_instant: bool) -> None:
-        self.sources = sources.copy() if sources is not None else []
-        self.sinks = sinks.copy() if sinks is not None else []
-        self.action_types = action_types
-        self.phase_count = phase_count
-        self.was_day = was_day
-        self.was_instant = was_instant
+# class RecordedEvent:
+#     def __init__(self, sources: list["p.Player"] | None, sinks: list["p.Player"] | None, action_types: list[str], phase_count: int, was_day: bool, was_instant: bool) -> None:
+#         self.sources = sources.copy() if sources is not None else []
+#         self.sinks = sinks.copy() if sinks is not None else []
+#         self.action_types = action_types
+#         self.phase_count = phase_count
+#         self.was_day = was_day
+#         self.was_instant = was_instant
 
-    def __getattr__(self, attr):
-        print(f"WARNING: Attempted to access attribute {attr}. This is allowed, because all {type(self).__name__}"
-              " attributes have default values of 0, unless otherwise specified. However, "
-              "this could be in error, so this warning is provided.")
-        return 0
+#     def __getattr__(self, attr):
+#         print(f"WARNING: Attempted to access attribute {attr}. This is allowed, because all {type(self).__name__}"
+#               " attributes have default values of 0, unless otherwise specified. However, "
+#               "this could be in error, so this warning is provided.")
+#         return 0
 
-class Visit(RecordedEvent):
-    def __init__(self, visitors: list["p.Player"], targets: list["p.Player"], action_types: list[str], phase_count: int, was_day: bool, was_instant: bool) -> None:
-        RecordedEvent.__init__(self, sources=visitors, sinks=targets, action_types=action_types, phase_count=phase_count, was_day=was_day, was_instant=was_instant)
-        self.visitors = self.sources
-        self.targets = self.sinks
+# class Visit(RecordedEvent):
+#     def __init__(self, visitors: list["p.Player"], targets: list["p.Player"], action_types: list[str], phase_count: int, was_day: bool, was_instant: bool) -> None:
+#         RecordedEvent.__init__(self, sources=visitors, sinks=targets, action_types=action_types, phase_count=phase_count, was_day=was_day, was_instant=was_instant)
+#         self.visitors = self.sources
+#         self.targets = self.sinks
 
-class Feedback(RecordedEvent):
-    def __init__(self, feedback_string: str, generating_players: list["p.Player"], receiving_players: list["p.Player"], action_types: list[str], phase_count: int, was_day: bool, was_instant: bool) -> None:
-        RecordedEvent.__init__(self, sources=generating_players, sinks=receiving_players, action_types=action_types, phase_count=phase_count, was_day=was_day, was_instant=was_instant)
-        self.generating_players = self.sources
-        self.receiving_players = self.sinks
-        self.feedback_string = feedback_string
+# class Feedback(RecordedEvent):
+#     def __init__(self, feedback_string: str, generating_players: list["p.Player"], receiving_players: list["p.Player"], action_types: list[str], phase_count: int, was_day: bool, was_instant: bool) -> None:
+#         RecordedEvent.__init__(self, sources=generating_players, sinks=receiving_players, action_types=action_types, phase_count=phase_count, was_day=was_day, was_instant=was_instant)
+#         self.generating_players = self.sources
+#         self.receiving_players = self.sinks
+#         self.feedback_string = feedback_string
 
 

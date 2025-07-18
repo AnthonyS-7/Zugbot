@@ -11,7 +11,8 @@ import constants as c
 import main
 import player
 import post
-from roles_10_7_2024 import syntax_parser_standard as syn
+from role_standards import syntax_parser_standard as syn
+from role_standards import verify_standard as ver
 import roles
 import inspect
 import turbo_setup
@@ -30,9 +31,6 @@ intended_player_cap = 3
 
 ALLOWED_SETUPS = [setup.game_name.lower() for setup in turbo_setup.setups]
 ALLOWED_TOPIC_IDS = [9524, 9145]
-
-nya_responses = ["NYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "nya meow purr", "nya"]
-
 
 async def do_turbos():
     global turbo_task
@@ -67,14 +65,6 @@ def start_game(discard_1, discard_2, post: post.Post):
         assert posting_queue_task is not None
         turbo_task.cancel()
         posting_queue_task.cancel()
-
-def nya_at_user(discard_1, discard_2, post: post.Post):
-    string_to_post = random.choice(nya_responses)
-    fol_interface.create_post(string_to_post, topic_id_parameter=post.topicNumber)    
-
-def add_nya_message(discard_1, discard_2, message: str, post: post.Post):
-    nya_responses.append(message)
-    fol_interface.create_post("Nya response added (resets when bot is restarted).", topic_id_parameter=post.topicNumber)
 
 def join_game(discard_1, discard_2, post: post.Post):
     global playerlist
@@ -180,13 +170,11 @@ def make_simplified_ability(ability_name: str, syntax_parser, use_action_instant
         syntax_parser=syntax_parser,
         submission_location=-1, # NOTE: Abilities have most behavior enforced by outside constructs, not the abilities themselves.
         # In this case, turbos.py is not enforcing any submission location here.
-        can_use_now=lambda *args : True,
-        acknowledge_and_verify=lambda *args : None,
-        use_action_instant=use_action_instant,
-        use_action_phase_end=lambda *args : None,
+        verifier=ver.ALWAYS_TRUE,
+        action=use_action_instant,
+        is_instant=True,
         ability_priority=-1,
-        willpower_required_instant=-1,
-        willpower_required_phase_end=-1,
+        willpower_required=None,
         target_focus=-1,
         ignore_action_deadline=False,
         action_types=[c.FALSE_ACTION]
@@ -196,51 +184,41 @@ def make_simplified_ability(ability_name: str, syntax_parser, use_action_instant
 def get_turbo_out_of_game_abilities() -> list["player.Ability"]:
     help_ability = make_simplified_ability(
         ability_name="Print help",
-        syntax_parser=syn.syntax_parser_constructor(command_name="help", parameter_list=[]),
+        syntax_parser=syn.SyntaxParser(command_name="help", parameter_list=[]),
         use_action_instant=display_help_post,
     )
     signup_ability = make_simplified_ability(
         ability_name="Join Game",
-        syntax_parser=syn.syntax_parser_constructor(command_name="in", parameter_list=[]),
+        syntax_parser=syn.SyntaxParser(command_name="in", parameter_list=[]),
         use_action_instant=join_game,
     )
     quit_ability = make_simplified_ability(
         ability_name="Leave Game",
-        syntax_parser=syn.syntax_parser_constructor(command_name="out", parameter_list=[]),
+        syntax_parser=syn.SyntaxParser(command_name="out", parameter_list=[]),
         use_action_instant=leave_game,
     )
     start_ability = make_simplified_ability(
         ability_name="Start Game",
-        syntax_parser=syn.syntax_parser_constructor(command_name="start", parameter_list=[]),
+        syntax_parser=syn.SyntaxParser(command_name="start", parameter_list=[]),
         use_action_instant=start_game,
-    )
-    nya_ability = make_simplified_ability(
-        ability_name="Nya",
-        syntax_parser=syn.syntax_parser_constructor(command_name="nya", parameter_list=[]),
-        use_action_instant=nya_at_user,
-    )
-    add_nya_ability = make_simplified_ability(
-        ability_name="Nya",
-        syntax_parser=syn.syntax_parser_constructor(command_name="mya", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING]),
-        use_action_instant=add_nya_message,
     )
     modify_ability = make_simplified_ability(
         ability_name="Modify Game",
-        syntax_parser=syn.syntax_parser_constructor(command_name="modify", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING, syn.SYNTAX_PARSER_NO_SPACE_STRING]),
+        syntax_parser=syn.SyntaxParser(command_name="modify", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING, syn.SYNTAX_PARSER_NO_SPACE_STRING]),
         use_action_instant=modify_game_settings,
     )
     display_ability = make_simplified_ability(
         ability_name="Display settings",
-        syntax_parser=syn.syntax_parser_constructor(command_name="display", parameter_list=[]),
+        syntax_parser=syn.SyntaxParser(command_name="display", parameter_list=[]),
         use_action_instant=display_current_settings
     )
 
-    return [help_ability, signup_ability, quit_ability, start_ability, nya_ability, add_nya_ability, modify_ability, display_ability]
+    return [help_ability, signup_ability, quit_ability, start_ability, modify_ability, display_ability]
 
 async def process_turbo_post(post: post.Post, out_of_game_abilities: list[player.Ability]):
     for ability in out_of_game_abilities:        
         try:
-            parameters = ability.syntax_parser(post)
+            parameters = ability.syntax_parser.parse_discourse_post(post)
         except roles.ParsingException as e:
             print(f"This message could not be parsed the ability: {ability.ability_name}. Error below: ")
             print(e.args)
@@ -249,10 +227,8 @@ async def process_turbo_post(post: post.Post, out_of_game_abilities: list[player
         
         parameters.append(post) # This use of Ability often wants the post as a parameter, to read topic ID and the like
         print(f"Running instant action with {len(parameters)} parameters, plus the player and gamestate")
-        possible_awaitable = ability.use_action_instant(None, None, *parameters)
-        if inspect.isawaitable(possible_awaitable):
-            await possible_awaitable
-        ability.instant_use_count += 1
+        await ability.action.run_action(None, None, *parameters) # type: ignore
+        ability.use_count += 1
 
 async def run_turbo_listener():
     await fol_interface.get_new_posts_with_pings(ignore_return=True, accept_private_messages=False)

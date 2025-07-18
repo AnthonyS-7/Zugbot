@@ -108,9 +108,9 @@ import re
 # from roles_folder.doctor import make_town_doctor, make_mafia_doctor
 from roles_folder.roles_exceptions import ActionException, ParsingException
 
-from roles_10_7_2024 import syntax_parser_standard as syn
-from roles_10_7_2024 import can_use_now_standard as can
-from roles_10_7_2024 import acknowledge_and_verify_standard as aav
+from role_standards import syntax_parser_standard as syn
+from role_standards import can_use_now_standard as can
+from role_standards import verify_standard as ver
 
 from typing import Iterable
 import game_state
@@ -149,17 +149,17 @@ def make_day_vig(username: str) -> "player.Player":
     result = player.Player(username, c.TOWN, "town_day_vig.txt", abilities=[
         player.Ability(
             ability_name = "Day vig",
-            syntax_parser=syn.syntax_parser_constructor("shoot", [syn.SYNTAX_PARSER_PLAYERNAME]),
+            syntax_parser=syn.SyntaxParser("shoot", [syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,
             can_use_now=can.DAY,
+            is_instant=True,
             use_action_instant=daykill_player,
-            use_action_phase_end=empty_function,
             ability_priority=0,
             willpower_required_instant=None,
             willpower_required_phase_end=None,
             acknowledge_and_verify=aav.acknowledge_and_verify_constructor(restrictions=[
-                aav.NO_SELF_TARGET
-            ], parameter_list=[aav.PLAYER_PARAMETER], do_acknowledgement=False),
+                ver.NO_SELF_TARGET
+            ], parameter_list=[ver.PLAYER_PARAMETER], do_acknowledgement=False),
             target_focus=0,
             action_types=[c.KILLING]
         )
@@ -178,7 +178,7 @@ def make_town_cop(username: str) -> "player.Player":
     result = player.Player(username, c.TOWN, "town_cop.txt", abilities=[
         player.Ability(
             ability_name = "Cop",
-            syntax_parser=syn.syntax_parser_constructor("investigate", [syn.SYNTAX_PARSER_PLAYERNAME]),
+            syntax_parser=syn.SyntaxParser("investigate", [syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,
             can_use_now=can.NIGHT,
             use_action_instant=empty_function,
@@ -203,7 +203,7 @@ def make_town_joat(username: str) -> "player.Player":
     result = player.Player(username, c.TOWN, "town_joat_1.txt", abilities=[
         player.Ability(
             ability_name = "JOAT",
-            syntax_parser=syn.syntax_parser_constructor("act", [syn.SYNTAX_PARSER_NO_SPACE_STRING, syn.SYNTAX_PARSER_PLAYERNAME]),
+            syntax_parser=syn.SyntaxParser("act", [syn.SYNTAX_PARSER_NO_SPACE_STRING, syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,
             can_use_now=can.NIGHT,
             use_action_instant=empty_function,
@@ -259,15 +259,14 @@ def make_modposter(username: str, alignment: int) -> 'player.Player':
             submission_location=c.IN_PM,
             can_use_now=lambda playername, ability, gamestate: gamestate.is_day,
             acknowledge_and_verify=aav.acknowledge_and_verify_constructor(restrictions=[], parameter_list=[aav.ARBITRARY_STRING_PARAMETER]),
-            use_action_instant=lambda playername, gamestate, content : fol_interface.create_post(
+            action=lambda playername, gamestate, content : fol_interface.create_post(
                 "The following is a modpost: \n [quote] \n" +
                 content
                 + "\n[/quote]\n"
                 ),
-            use_action_phase_end=empty_function,
+            is_instant=True,
             ability_priority=0,
-            willpower_required_instant=None,
-            willpower_required_phase_end=None,
+            willpower_required=None,
             target_focus=0,
             action_types=[c.COMMUNICATIVE]
         )
@@ -305,18 +304,13 @@ def town_popcorn_take_damage(self: 'player.Player', damage: float):
     if self.health == 2:
         gun_ability = player.Ability(
             ability_name="Popcorn gun",
-            syntax_parser=syn.syntax_parser_constructor(command_name="shoot", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
+            syntax_parser=syn.SyntaxParser(command_name="shoot", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_THREAD,
-            can_use_now=can.can_use_now_constructor(instant_shot_count=-1, phase_end_shot_count=-1,
-                                                    normal_modifiers=[can.DAY]),
-            acknowledge_and_verify=aav.acknowledge_and_verify_constructor(restrictions=[aav.NO_SELF_TARGET],
-                                                                        parameter_list=[aav.PLAYER_PARAMETER],
-                                                                        do_acknowledgement=False),
-            use_action_instant=use_popcorn_gun,
-            use_action_phase_end=lambda *args : None,
+            verifier=ver.DAY & ver.NO_SELF_TARGET,
+            action=use_popcorn_gun,
+            is_instant=True,
             ability_priority=0,
-            willpower_required_instant=None,
-            willpower_required_phase_end=None,
+            willpower_required=None,
             target_focus=0,
             action_types=[c.KILLING],
             ignore_action_deadline=False)
@@ -346,15 +340,13 @@ def make_mafia_popcorn(username: str) -> 'player.Player':
     result = player.Player(username, c.MAFIA, "mafia_popcorn.txt", abilities=[
         player.Ability(
             ability_name="Choose gunholder",
-            syntax_parser=syn.syntax_parser_constructor(command_name="choose", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
+            syntax_parser=syn.SyntaxParser(command_name="choose", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,
-            can_use_now=can.DAY,
-            acknowledge_and_verify=aav.acknowledge_and_verify_constructor(restrictions=[aav.DISLOYAL_FOR_MAFIA], parameter_list=[aav.PLAYER_PARAMETER]),
-            use_action_instant=choose_gunholder,
-            use_action_phase_end=lambda *args : None,
+            verifier=ver.DAY & ver.DISLOYAL_FOR_MAFIA,
+            action=choose_gunholder,
+            is_instant=True,
             ability_priority=0,
-            willpower_required_instant=None,
-            willpower_required_phase_end=None,
+            willpower_required=None,
             target_focus=0,
             action_types=[c.FALSE_ACTION],
             ignore_action_deadline=True
