@@ -9,9 +9,9 @@ import random
 import config
 import constants as c
 import main
-import player
+import ability
 import post
-from role_standards import syntax_parser_standard as syn
+from . import syntax_parser_standard as syn
 from role_standards import verify_standard as ver
 import roles
 import inspect
@@ -160,28 +160,26 @@ def display_current_settings(discard_1, discard_2, post: post.Post):
     fol_interface.create_post(string_to_post=string_to_post, topic_id_parameter=post.topicNumber)
 
 
-def make_simplified_ability(ability_name: str, syntax_parser, use_action_instant) -> player.Ability:
+def make_simplified_ability(ability_name: str, syntax_parser, use_action_instant) -> ability.Ability:
     """
     Makes an Ability with the provided parameters, and many defaults for ones that aren't
     useful for turbos.py.
     """
-    result_ability = player.Ability(
+    result_ability = ability.Ability(
         ability_name=ability_name,
         syntax_parser=syntax_parser,
         submission_location=-1, # NOTE: Abilities have most behavior enforced by outside constructs, not the abilities themselves.
         # In this case, turbos.py is not enforcing any submission location here.
-        verifier=ver.ALWAYS_TRUE,
         action=use_action_instant,
         is_instant=True,
         ability_priority=-1,
         willpower_required=None,
-        target_focus=-1,
         ignore_action_deadline=False,
         action_types=[c.FALSE_ACTION]
     )
     return result_ability
 
-def get_turbo_out_of_game_abilities() -> list["player.Ability"]:
+def get_turbo_out_of_game_abilities() -> list["ability.Ability"]:
     help_ability = make_simplified_ability(
         ability_name="Print help",
         syntax_parser=syn.SyntaxParser(command_name="help", parameter_list=[]),
@@ -215,7 +213,7 @@ def get_turbo_out_of_game_abilities() -> list["player.Ability"]:
 
     return [help_ability, signup_ability, quit_ability, start_ability, modify_ability, display_ability]
 
-async def process_turbo_post(post: post.Post, out_of_game_abilities: list[player.Ability]):
+async def process_turbo_post(post: post.Post, out_of_game_abilities: list[ability.Ability]):
     for ability in out_of_game_abilities:        
         try:
             parameters = ability.syntax_parser.parse_discourse_post(post)

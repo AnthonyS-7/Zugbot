@@ -1,6 +1,13 @@
+import logging
+
 # Alignments Enum Start
-TOWN = 0
-MAFIA = 1
+class Alignment:
+    def __init__(self, alignment: int) -> None:
+        self.alignment = alignment
+        pass
+
+TOWN = Alignment(0)
+MAFIA = Alignment(1)
 # Alignments Enum End
 
 # Action Submission Enum Start
@@ -17,3 +24,7 @@ PROTECTIVE = "protective"
 
 FALSE_ACTION = "false_action" # Used for abilities which are not actually actions, such as requesting votecounts
 # Action Types End
+
+LOGGER = logging.Logger(name="latest.log")
+DEBUG = logging.DEBUG
+ERROR = logging.ERROR

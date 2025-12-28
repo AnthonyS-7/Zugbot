@@ -1,10 +1,12 @@
 Need:
 
 - way to determine what abilities can be used together (likely give each ability a vector of "cost" to use, and require that each entry of the sum of all abilities used is less than some maximum. this vector should actually be a dictionary, for more meaningful indexing)
+  - Doing this through AbilityRestrictions.
 - way to log what was used, and make trackers/watchers work
 - way to indicate what is standard and well-behaved
 - way to do NAR
 - standard modifiers
+  - Doing this through AbilityModifiers (on the Ability side) and Passives (on the Player side)
 
 The following is a list of all Standard Zugbot mech. (...once this is implemented.)
 

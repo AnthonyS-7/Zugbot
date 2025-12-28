@@ -6,6 +6,7 @@ UNKNOWN_VOTE = "unknown"
 NO_EXE_ALIASES = list(map(lambda x : x.lower(), ["no-exe", "noelim", "noexe", "sleep"]))
 NO_EXE = "sleep"
 
+import constants
 import post as p
 import config
 import time
@@ -168,7 +169,7 @@ async def get_new_posts_in_thread(topic_id: int | str):
     posts: list[p.Post] = []
     all_new_posts_accessed = False
     while not all_new_posts_accessed:
-        print(f"About to access page {new_page_to_access}")
+        print(f"About to access page {new_page_to_access} in topic {topic_id}")
         raw_page = await do_api_call(lambda : fluent_discourse_client.raw._(f"{topic_id}?page={new_page_to_access}").get(), ignore_return=False)
         assert type(raw_page) == str
         new_posts = raw_page_to_posts(raw_page=raw_page, topic_number=topic_id)
@@ -813,7 +814,7 @@ async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=
 
     if not config.is_botf: # if not BOTF, wolves should be told teammates
         if len(teammates) != 0:
-            full_pm += "Teammates: \n"
+            full_pm += "Mafia Team: \n"
         for teammate in teammates:
             full_pm += f"{teammate} \n"
 
@@ -893,6 +894,8 @@ async def ensure_all_players_exist_and_are_spelled_correctly(playerlist: list[st
         if not success or player != corrected_capitalization:
             return False
     return True
+
+
 
 
 

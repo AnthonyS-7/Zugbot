@@ -2,10 +2,14 @@ import json
 import time
 import random
 
-import player as p
 import constants as c
+from constants import Alignment
 import config
 from typing import Callable
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import player as p
 
 gamestate_file_name = "gamestate.json"
 
@@ -76,7 +80,7 @@ class GameState:
                 self.current_players.pop(num)
         return True
         
-    def count_players_of_alignment(self, alignment: int):
+    def count_players_of_alignment(self, alignment: Alignment):
         num = 0
         for player in self.current_players:
             if player.alignment == alignment:

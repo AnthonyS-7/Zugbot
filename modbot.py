@@ -1,11 +1,12 @@
 import fol_interface
-import discord_interface
-import roles
+
 import player as p
 import post as post_class
-import roles_folder.host as host
 import config
 import game_state
+import roles_folder.host as host
+import ability as a
+
 
 import os
 import random
@@ -14,6 +15,7 @@ import asyncio
 import inspect
 import datetime
 import restore
+
 
 INVALID_FLIP = "This flip is invalid, and should never be posted. If you are seeing this, it is in error."
 
@@ -117,7 +119,7 @@ def process_nightkill(nightkill_username: str, gamestate: game_state.GameState):
     """
     player_object = gamestate.get_player_object_living_players_only(nightkill_username)
     assert player_object is not None
-    player_object.take_damage(1)
+    player_object.take_damage(a.AbilityModifiers()) # TODO: allow modifiers for the factional??
 
 def process_elimination(eliminated_player_username: str, gamestate: game_state.GameState, was_tie: bool):
     flip = get_flip(eliminated_player_username, gamestate)
@@ -142,13 +144,13 @@ async def resolve_day_or_night_end_actions(elimination_or_nightkill: str, gamest
     - was_tie - True if this was an elimination that randed, False otherwise
     - is_day - True if a day just ended, False if night ended
     """
-    actions_to_be_resolved_at_phase_end : list[tuple[p.Ability | None, list, float]] = [] #Entries here are (ability object, [acting player object,
+    actions_to_be_resolved_at_phase_end : list[tuple[a.Ability | None, list, float]] = [] #Entries here are (ability object, [acting player object,
                                          # gamestate, parameters from syntax parser], ability priority)
 
 
     for player in gamestate.current_players:
         for unresolved_action in player.unresolved_actions:
-            ability_object = p.all_abilities[unresolved_action.ability_id]
+            ability_object = a.all_abilities[unresolved_action.ability_id]
             actions_to_be_resolved_at_phase_end.append((ability_object, 
                                                         [player, gamestate, unresolved_action.parameters], 
                                                         ability_object.ability_priority))
@@ -169,7 +171,7 @@ async def resolve_day_or_night_end_actions(elimination_or_nightkill: str, gamest
             continue
         if ability is None: # This happens only for the filler ability to guarantee the elimination is processed.
             continue        # Since it isn't a real ability, it must be skipped; the earlier if statement does not guarantee it's skipped
-        parameters[2] = process_redirects(parameters[2], ability) #parameters[2] is the output of the syntax parser
+        parameters[2] = a.process_redirects(parameters[2], ability) #parameters[2] is the output of the syntax parser
         acting_player = parameters[0]
         assert type(acting_player) == p.Player
         if ability.willpower_required is None or acting_player.willpower >= ability.willpower_required:
@@ -213,6 +215,7 @@ async def resolve_current_deaths(gamestate: game_state.GameState, during_night_d
     if len(about_to_die_players) > 0 and fix_votecount:
         await fol_interface.post_votecount(players_to_kill=about_to_die_players, nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations())
 
+    
 def resolve_name(nickname: str):
     """
     Removes an '@' before the name, and resolves by substring if needed.
@@ -221,7 +224,6 @@ def resolve_name(nickname: str):
     if len(nickname) > 0:
         nickname = nickname[1:] if nickname[0] == '@' else nickname
     return fol_interface.resolve_substring_alias(nickname, gamestate.get_living_players(), for_votecount=False)
-    
 
 def get_pregame_post_string():
     with open("about_zugbot.md", "r") as about_zugbot_file:
@@ -277,63 +279,9 @@ async def run_vc_bot():
             posts_in_thread_at_last_vc = new_postcount
     return None
 
-# def is_submission_location_correct(submission_location: int, topic_number_parameter: str | int, username: str):
-#     if int(submission_location) == c.IN_THREAD:
-#         return fol_interface.topic_is_main_thread(topic_number_parameter)
-#     elif int(submission_location) == c.IN_PM:
-#         return fol_interface.topic_is_pm(topic_number_parameter, username=username)
-#     return False
 
 def send_feedback(feedback_string: str, sources: list[p.Player] | None, receivers: list[p.Player], action_types: list[str], was_instant: bool):
-
     pass
-
-"""
-Overall action processing sequence:
-
-for each ability:
-- submission location correct (quit if not)
-- can_use_now (quit if not)
-- parse post (throw error? quit!)
-- acknowledge_and_verify (throw error? quit!)
-- for each player mentioned in this ability, process redirects, making a new set of parameters for the instant action
-- if willpower_required_instant is high enough -> do instant action. NEVER throws exception.
-
-later
-
-- for each player mentioned in this ability (original submission, not the result of processing redirects for the instant action), 
-    process redirects, making a new set of parameters for the delayed action
-- if willpower_required_phase_end is high enough -> do delayed action. NEVER throws exception.
-
-"""
-
-# def process_redirects(action_parameters: list, ability: p.Ability, no_redirects=False) -> list:
-#     """
-#     This method takes the parameters for an action, and an Ability, and redirects the action's target(s) if needed.
-
-#     action_parameters are the parameters for the action, and ability is the Ability.
-
-#     This method returns a copy of action_parameters, with the redirects made.
-
-#     no_redirects should only be used for false actions (such as modkills and substitutions).
-
-#     """
-#     if no_redirects:
-#         return action_parameters.copy()
-#     result = action_parameters.copy()
-#     for index in range(len(result)):
-#         if type(result[index]) == p.Player:
-#             current_focus = ability.target_focus
-#             current_player = result[index]
-#             assert type(current_player) == p.Player
-#             no_more_redirects = False
-#             while not no_more_redirects:
-#                 next_player = current_player.get_redirect(current_focus)
-#                 current_focus += current_player.get_redirect_focus_increase()
-#                 no_more_redirects = current_player == next_player
-#                 current_player = next_player
-#             result[index] = current_player
-#     return result
 
 async def process_post(post: post_class.Post, gamestate: game_state.GameState, action_submission_open: bool) -> None:
     player_object = gamestate.get_player_object_living_players_only(username=post.poster)
@@ -342,56 +290,16 @@ async def process_post(post: post_class.Post, gamestate: game_state.GameState, a
         return None
     is_host_post = player_object is None
     for ability in (player_object.abilities if not is_host_post else host.host_abilities):
-        
-        if not is_host_post and not ability.ignore_action_deadline and not action_submission_open:
-            print("Action submission is not open, and this ability does not ignore the action deadline.")
-            continue
-
-        if not is_host_post and not is_submission_location_correct(ability.submission_location, post.topicNumber, post.poster):
-            print(f"Submission location for {ability.ability_name} is wrong")
-            continue
-        print(f"Submission location for {ability.ability_name} is correct (or is a host command)")
-        
-        try:
-            parameters = ability.syntax_parser.parse_discourse_post(post)
-        except roles.ParsingException as e:
-            print(f"This message could not be parsed the ability: {ability.ability_name}. Error below: ")
-            print(e.args)
-            continue
-        print(f"Input for {ability.ability_name} parsed successfully; the parameters are {parameters}")
-
-        if not is_host_post:
-            verification_message = ability.verifier.verify(player_object, ability, gamestate,
-                                                          ability.syntax_parser.parameter_list, parameters)
-            if verification_message != '':
-                fol_interface.send_message(verification_message, player_object.username, priority=5)
-                print(f"This ability failed verification with message: {verification_message}")
-                continue
-        print("Ability passed verification!")
-        if not is_host_post:
-            fol_interface.send_message("Action processed.", player_object.username, priority=5)
-                
-        if ability.is_instant and (is_host_post or ability.willpower_required is None or player_object.willpower >= ability.willpower_required):
-            parameters = process_redirects(parameters, ability, no_redirects=is_host_post)
-            print(f"Running instant action with {len(parameters)} parameters, plus the player and gamestate")
-            await ability.action.run_action(player_object, gamestate, *parameters) # type: ignore
-            ability.use_count += 1
-
-        if player_object is None:
-            print("Note that host abilities cannot have delayed effects at the moment."
-                  "If the host ability that was just used was purely instant, disregard this message.")
-        elif not ability.is_instant:
-            player_object.record_action(ability.id, parameters)
+        await ability.attempt_to_use_ability(post, player_object, gamestate, action_submission_open, is_host_post)
         restore.save_all()
         
-
 async def run_action_processor():
     while True:
         if action_submission_open:
             break
         await asyncio.sleep(4)
     await fol_interface.get_new_posts_with_pings(ignore_return=True)
-    # DON'T process actions here. this is to avoid processing old pings
+    # we DON'T process actions here. this is to avoid processing old pings
     while True:
         await asyncio.sleep(config.action_processor_sleep_seconds)
         new_posts = await fol_interface.get_new_posts_with_pings()
@@ -441,7 +349,6 @@ async def start_game() -> bool:
     - Hands out role PMs
     - Closes the thread, and sets the thread open timer
       - If the game start time isn't set in the config file, this is automatically set here
-
 
     """
     fol_interface.create_post(get_pregame_post_string(), topic_id_parameter=config.topic_id)
@@ -531,15 +438,12 @@ async def do_night_start(game_start_time: datetime.datetime) -> tuple[datetime.d
     await fol_interface.set_timer(thread_open_time.strftime("%Y-%m-%d %H:%M" + config.utc_offset), close=False)
     return actions_close_time, thread_open_time
 
-
-
 async def run_modbot():
     global game_started
     global nightkill_choice
     global continue_posting_vcs
     global action_submission_open
     
-
     if not game_started: # When run_modbot is called from a restored game, game_started may be True
         started_successfully = await start_game()
         if not started_successfully:

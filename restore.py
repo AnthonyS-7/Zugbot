@@ -3,6 +3,7 @@ import modbot
 import game_state
 import config
 import player
+import ability
 
 
 import json
@@ -39,10 +40,14 @@ def save_all():
     config.min_delay_between_saves_seconds ago.
     """
     global last_save_time
+    print("Saving state... ")
     if time.time() - last_save_time > config.min_delay_between_saves_seconds:
         last_save_time = time.time()
         save_json()
         save_pickle()
+        print("State saved.")
+    else:
+        print("Save cancelled because previous save was too recent.")
 
 def queue_encoder(obj):
     if isinstance(obj, queue.PriorityQueue):
@@ -89,7 +94,7 @@ def restore_individual_variables(json_input: dict):
     exec would be a security risk. Other forms of reflection would be ideal, but I do not know
     any concise ways of doing them. So, this is written out directly.
     """
-    player.next_id = json_input["player.next_id"]
+    ability.next_id = json_input["ability.next_id"]
     fol_interface.to_post_cache = json_input["fol_interface.to_post_cache"]
     fol_interface.username_to_role_pm_id = json_input["fol_interface.username_to_role_pm_id"]
     fol_interface.topic_id_to_last_post_accessed = json_input["fol_interface.topic_id_to_last_post_accessed"]
@@ -109,7 +114,7 @@ def restore_individual_variables(json_input: dict):
 
 def save_json():
     to_save = {
-        "player.next_id" : player.next_id,
+        "ability.next_id" : ability.next_id,
         "fol_interface.to_post_cache" : fol_interface.to_post_cache,
         "fol_interface.username_to_role_pm_id" : fol_interface.username_to_role_pm_id,
         "fol_interface.topic_id_to_last_post_accessed" : fol_interface.topic_id_to_last_post_accessed,
@@ -132,7 +137,7 @@ def save_json():
 
 def save_pickle():
     gamestate_file = open(GAMESTATE_PICKLE_PATH, 'bw')
-    dill.dump((modbot.gamestate, player.all_abilities), gamestate_file)
+    dill.dump((modbot.gamestate, ability.all_abilities), gamestate_file)
     gamestate_file.close()
 
 # def load_everything():
@@ -157,7 +162,7 @@ def load_everything_and_convert_to_game():
     gamestate_file = open(GAMESTATE_PICKLE_PATH, 'rb')
     gamestate_object, all_abilities = dill.load(gamestate_file)
     modbot.gamestate = gamestate_object
-    player.all_abilities = all_abilities
+    ability.all_abilities = all_abilities
 
     # while(True):
     #     command_to_run = input("REMOVE THIS LATER")

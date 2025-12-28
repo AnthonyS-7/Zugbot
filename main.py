@@ -1,11 +1,17 @@
 import asyncio
 
 import fol_interface
-#import game_state
 import modbot
 import discord_interface
 import restore
 import config
+import game_state
+import syntax_parser_standard as syn
+import constants as c
+from constants import Alignment
+import abilities_standard
+import ability as a
+
 
 tasks: list[asyncio.Task] = []
 

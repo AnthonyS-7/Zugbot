@@ -1,3 +1,4 @@
+import ability
 import player
 import game_state
 import fol_interface
@@ -5,14 +6,17 @@ import post as p
 import modbot
 import config
 
+import abilities_standard
+
+
 import types
 
 import re
 import roles_folder.roles_exceptions as r
 import roles_folder.roles_templates as rt
-import role_standards.syntax_parser_standard as syn
+import syntax_parser_standard as syn
 import role_standards.verify_standard as aav
-from player import Ability
+import ability
 import player
 import constants as c
 
@@ -80,20 +84,20 @@ async def do_modkill(player_object: 'None | player.Player', gamestate: "game_sta
 
     await fol_interface.post_votecount(players_to_kill=[modkilled_player.username], nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations())
 
-do_substitution_ability = Ability(
+do_substitution_ability = ability.Ability(
     ability_name="Substitute",
     syntax_parser=syn.SyntaxParser(command_name="sub", 
                                                 parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME, 
                                                                 syn.SYNTAX_PARSER_NO_SPACE_STRING]),
-    action=player.Action(do_substitution),
+    action=ability.Action(do_substitution),
     is_instant=True
 )
 
-do_modkill_ability = Ability(
+do_modkill_ability = ability.Ability(
     ability_name="Modkill",
     syntax_parser=syn.SyntaxParser(command_name="modkill",
                                                 parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
-    action=player.Action(do_modkill),
+    action=ability.Action(do_modkill),
     is_instant=True
 )
 
@@ -131,68 +135,68 @@ def reenable_abilities(host_account, gamestate: game_state.GameState):
     modbot.all_abilities_are_disabled = False
     fol_interface.create_post("Abilities have been enabled.")
 
-reset_nominations_ability = Ability( # resets all nominations, but doesn't change who can nominate
+reset_nominations_ability = ability.Ability( # resets all nominations, but doesn't change who can nominate
     ability_name="Reset Nominations",
     syntax_parser=syn.SyntaxParser(command_name="reset", parameter_list=[]),
-    action=player.Action(reset_nominations),
+    action=ability.Action(reset_nominations),
     is_instant=True,
     ignore_action_deadline=True
 ) 
 
-set_nomination_ability = Ability( # sets one players as having nominated another player
+set_nomination_ability = ability.Ability( # sets one players as having nominated another player
     ability_name="Set Nomination",
     syntax_parser=syn.SyntaxParser("set", [syn.SYNTAX_PARSER_PLAYERNAME, syn.SYNTAX_PARSER_PLAYERNAME]),
-    action=player.Action(set_nomination),
+    action=ability.Action(set_nomination),
     is_instant=True,
     ignore_action_deadline=True
 )
 
-remove_nomination_ability = Ability(  # removes one player's ability to nominate
+remove_nomination_ability = ability.Ability(  # removes one player's ability to nominate
     ability_name="Remove Nomination Power",
     syntax_parser=syn.SyntaxParser(command_name="kill", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
-    action=player.Action(remove_nomination_power),
+    action=ability.Action(remove_nomination_power),
     is_instant=True,
 
     ignore_action_deadline=True
 
 )
 
-restore_nomination_ability = Ability(  # restores one player's ability to nominate
+restore_nomination_ability = ability.Ability(  # restores one player's ability to nominate
     ability_name="Restore Nomination Power",
     syntax_parser=syn.SyntaxParser(command_name="revive", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
-    action=player.Action(restore_nomination_power),
+    action=ability.Action(restore_nomination_power),
     is_instant=True,
     ignore_action_deadline=True
 )
 
-open_nominations_ability = Ability(  # opens nominations
+open_nominations_ability = ability.Ability(  # opens nominations
     ability_name="Open Nominations",
     syntax_parser=syn.SyntaxParser(command_name="open", parameter_list=[]),
-    action=player.Action(open_nominations),
+    action=ability.Action(open_nominations),
     is_instant=True,
     ignore_action_deadline=True
 )
 
-close_nominations_ability = Ability(  # closes nominations
+close_nominations_ability = ability.Ability(  # closes nominations
     ability_name="Close Nominations",
     syntax_parser=syn.SyntaxParser(command_name="close", parameter_list=[]),
-    action=player.Action(close_nominations),
+    action=ability.Action(close_nominations),
     is_instant=True,
     ignore_action_deadline=True
 )
 
-disable_all_abilities_ability = Ability(
+disable_all_abilities_ability = ability.Ability(
     ability_name="Disable All Abilities",
     syntax_parser=syn.SyntaxParser(command_name="disable", parameter_list=[]),
-    action=player.Action(disable_all_abilities),
+    action=ability.Action(disable_all_abilities),
     is_instant=True,
     ignore_action_deadline=True
 )
 
-reenable_abilities_ability = Ability(
+reenable_abilities_ability = ability.Ability(
     ability_name="Reenable Abilities",
     syntax_parser=syn.SyntaxParser(command_name="enable", parameter_list=[]),
-    action=player.Action(reenable_abilities),
+    action=ability.Action(reenable_abilities),
     is_instant=True,
     ignore_action_deadline=True
 )
@@ -209,4 +213,4 @@ else:
                       reset_nominations_ability, set_nomination_ability, remove_nomination_ability, restore_nomination_ability,
                       open_nominations_ability, close_nominations_ability]
 if config.do_votecounts:
-    host_abilities.append(player.get_votecount_ability())
+    host_abilities.append(abilities_standard.VOTECOUNT_ABILITY())

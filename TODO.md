@@ -27,3 +27,35 @@ KNOWN BUGS:
 
 Probable bugs: 
 
+
+
+#  TODO for turbo implementation
+
+
+- joat10
+- popcorn
+- cop9
+- desp8
+- inno7, inno4
+- godfather9
+- ita10
+- bomb10
+
+roles required:
+- popcorn roles
+- cop
+  - including n0 peek
+- joat (1x cop, 1x doctor, 1x vig)
+- inventor who gives a desperado item
+- inventor who gives a bomb
+- innocent child
+- vigilante
+- PR killer
+
+role modifiers required:
+- cycle restrictions
+- shot restrictions
+- multitask restrictions? depending on joat implementation
+
+other reqs:
+- ITAs
