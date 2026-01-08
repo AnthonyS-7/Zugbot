@@ -1,0 +1,52 @@
+url: "https://www.fortressoflies.com" # Should not end with /
+username: "Zugbot"
+
+game_name: "Refactored Test"
+game_start_time: '' # If not '', then the game will start at this time. Also, all phases
+    # will have start and end times calculated off of this time. This is in 24 hour time. This should be in the timezone
+    # specified in utc_offset.
+    # Example format: "2024-08-13 08:00"
+utc_offset: "-05:00"
+
+host_usernames:
+- Zugzwang
+- Zwischenzug
+playerlist_usernames:
+- Zug
+- joycat
+- Mittens
+topic_id: 9145 # The topic ID of the game thread
+
+mafia_discord_link: ''
+rand_roles: false # Whether to rand roles. Set to true in games! This option is here for easier debugging.
+
+day_length: 4 # In minutes
+night_length: 3 # In minutes
+action_deadline: 1 # Actions can no longer be submitted this many minutes before phase change. Should be at least 1.
+
+setup_name: 'mountainous3' # Must exactly match the name in the setups folder
+
+# Most users can safely ignore everything below this line.
+
+resolve_like_vc_plugin: true # Should be set to true for most use cases.
+
+turbo_pm_json_path: "turbo_pms.json" # ignored if not running turbos. For turbos, this provides topic IDs for previous PMs
+                                     # used to speed up role distribution.
+
+action_processor_sleep_seconds: 5 # Time slept between consecutive checks for new action submissions (in seconds)
+
+delay_between_post_checks: 1 # Time slept between checks of the posting queue (in seconds)
+delay_between_posts: 4 # Minimum delay between posts Zugbot makes (in seconds)
+
+exception_retry_delay: 5 # Time to wait to retry an API call if an exception occurs (in seconds)
+max_exception_retries: 20 # Maximum number of times to retry an API call before giving up
+
+restore_delay_minutes: 5 # Every restore_delay_minutes, the game is saved.
+min_delay_between_saves_seconds: 30 # Saves are cancelled if there has been a save in the last min_delay_between_saves_seconds.
+
+vc_post_cooldown: 10 # The minimum delay (in seconds) between votecount posts (including ones requested by /votecount)
+votecount_time_interval: 120 # The number of minutes between automatic votecount posts (not requested by /votecount)
+votecount_post_interval: 10 # The number of posts between automatic votecount posts (not requested by /votecount)
+
+
+debug_print_all_posts: true

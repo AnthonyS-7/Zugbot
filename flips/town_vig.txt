@@ -1,0 +1,5 @@
+# [color=00ff00] Town Vigilante [/color]
+
+**Shoot (Night, Infinite-Shot, Privately Submitted, Self-Target Disallowed)** - Use /shoot [player] to kill target player.
+
+Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.

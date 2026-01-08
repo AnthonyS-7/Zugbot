@@ -11,6 +11,7 @@ import constants as c
 from constants import Alignment
 import abilities_standard
 import ability as a
+import setup
 
 
 tasks: list[asyncio.Task] = []

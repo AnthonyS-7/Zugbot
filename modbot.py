@@ -119,7 +119,7 @@ def process_nightkill(nightkill_username: str, gamestate: game_state.GameState):
     """
     player_object = gamestate.get_player_object_living_players_only(nightkill_username)
     assert player_object is not None
-    player_object.take_damage(a.AbilityModifiers()) # TODO: allow modifiers for the factional??
+    player_object.take_damage(a.AbilityModifiers(damage_amount=1.0)) # TODO: allow modifiers for the factional??
 
 def process_elimination(eliminated_player_username: str, gamestate: game_state.GameState, was_tie: bool):
     flip = get_flip(eliminated_player_username, gamestate)
@@ -161,21 +161,24 @@ async def resolve_day_or_night_end_actions(elimination_or_nightkill: str, gamest
 
     exe_or_nightkill_processed = False
 
+    print(f"Resolving EoD/EoN actions. There are {len(actions_to_be_resolved_at_phase_end) - 1} actions to resolve.")
+
     for ability, parameters, priority in actions_to_be_resolved_at_phase_end:
+        print(f"{priority=}")
         if priority >= 0 and not exe_or_nightkill_processed:
             if is_day:
                 process_elimination(elimination_or_nightkill, gamestate, was_tie)
             else:
                 process_nightkill(elimination_or_nightkill, gamestate=gamestate)
             exe_or_nightkill_processed = True
-            continue
         if ability is None: # This happens only for the filler ability to guarantee the elimination is processed.
             continue        # Since it isn't a real ability, it must be skipped; the earlier if statement does not guarantee it's skipped
         parameters[2] = a.process_redirects(parameters[2], ability) #parameters[2] is the output of the syntax parser
         acting_player = parameters[0]
         assert type(acting_player) == p.Player
+        assert type(parameters[1]) == game_state.GameState
         if ability.willpower_required is None or acting_player.willpower >= ability.willpower_required:
-            await ability.action.run_action(parameters[0], parameters[1], *parameters[2])
+            await ability.action.run_action(acting_player, parameters[1], ability, *parameters[2])
             ability.use_count += 1
     
     actions_to_be_resolved_at_phase_end = []

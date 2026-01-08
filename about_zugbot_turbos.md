@@ -9,7 +9,5 @@ Available commands:
   - day_length - integer
   - night_length - integer
   - topic_id - No parameters
-  - allow_multivoting - "True" or "False"
   - setup - setup name
-  - playercount - integer
-- /display - Displays current game settings
+- /display - Displays current game settings & playerlist

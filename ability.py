@@ -6,6 +6,7 @@ import inspect
 import typing
 from typing import Callable
 from typing_extensions import Concatenate, ParamSpec
+from roles_folder.roles_exceptions import ParsingException, ActionException
 
 
 import ability as a
@@ -33,9 +34,9 @@ def get_next_id() -> int:
 
 all_abilities: list["Ability"] = []
 
-async def _add(action_1: 'Action', action_2: 'Action', player_object: 'pl.Player', gamestate: 'game_state.GameState', *args):
-    await action_1.run_action(player_object, gamestate, *args)
-    await action_2.run_action(player_object, gamestate, *args)
+async def _add(action_1: 'Action', action_2: 'Action', player_object: 'pl.Player', gamestate: 'game_state.GameState', ability: 'Ability', *args):
+    await action_1.run_action(player_object, gamestate, ability, *args)
+    await action_2.run_action(player_object, gamestate, ability, *args)
 
 class Action:
     """
@@ -46,11 +47,24 @@ class Action:
         self.use_action = use_action
 
     def __add__(self, other: 'Action'):
-        new_use_action = lambda player_object, gamestate, *args : _add(self, other, player_object, gamestate, *args)
+        new_use_action = lambda player_object, gamestate, ability, *args : _add(self, other, player_object, gamestate, ability, *args)
         return Action(new_use_action)
 
-    async def run_action(self, player_object: 'pl.Player', gamestate: 'game_state.GameState', *args):
-        possible_awaitable = self.use_action(player_object, gamestate, *args) # type: ignore
+    async def run_action(self, player_object: 'pl.Player', gamestate: 'game_state.GameState', ability: 'Ability', *args):
+        """
+        Docstring for run_action
+        
+        :param player_object: The player using the action.
+        :type player_object: 'pl.Player'
+        :param gamestate: The gamestate.
+        :type gamestate: 'game_state.GameState'
+        :param ability: The ability object that this Action belongs to.
+        :type ability: 'Ability'
+        :param args: Other arguments this action takes.
+        """
+        print(f"run_action() called for ability {ability.ability_name}.")
+        print(f"Extra parameters: {args}")
+        possible_awaitable = self.use_action(player_object, gamestate, ability, *args) # type: ignore
         if inspect.isawaitable(possible_awaitable):
             await possible_awaitable
 
@@ -60,8 +74,8 @@ class AbilityModifiers:
     """
     def __init__(self,
                  invest_power=1.0,
-                 protection_level=1.0,
-                 damage_amount=1.0,
+                 protection_level=0.0,
+                 damage_amount=0.0,
                  target_focus=0.0, # TODO: should this be in here? unsure.
                  ) -> None:
         self.invest_power = invest_power
@@ -150,7 +164,7 @@ class Ability:
         print(f"Input for {self.ability_name} parsed successfully; the parameters are {parameters}")
         parameters = process_redirects(parameters, self, no_redirects=True)
         print(f"Running instant action with {len(parameters)} parameters, plus the gamestate")
-        await self.action.run_action(None, gamestate, *parameters) # type: ignore
+        await self.action.run_action(None, gamestate, self, *parameters) # type: ignore
         self.use_count += 1
 
 
@@ -183,8 +197,12 @@ class Ability:
         try:
             parameters = self.syntax_parser.parse_discourse_post(post)
         except ParsingException as e:
-            print(f"This message could not be parsed the ability: {self.ability_name}. Error below: ")
+            print(f"This message could not be parsed for the ability: {self.ability_name}. Error below: ")
             print(e.args)
+            return
+        except Exception as e:
+            print(f"Unintended exception of type {type(e)} occured. Exception is: ")
+            print(e)
             return
         print(f"Input for {self.ability_name} parsed successfully; the parameters are {parameters}")
 
@@ -199,8 +217,9 @@ class Ability:
 
         if self.is_instant and (self.willpower_required is None or player.willpower >= self.willpower_required):
             parameters = process_redirects(parameters, self, no_redirects=is_host_post)
-            print(f"Running instant action with {len(parameters)} parameters, plus the player and gamestate")
-            await self.action.run_action(player, gamestate, *parameters) # type: ignore
+            print(f"Running instant action with {len(parameters)} parameters, plus the player and gamestate and ability")
+
+            await self.action.run_action(player, gamestate, self, *parameters) # type: ignore
             self.use_count += 1
         else:
             player.record_action(self.id, parameters)
@@ -269,14 +288,29 @@ class AbilityRestrictions:
 
     def verify(self, player_using_action: pl.Player, ability_being_used: 'Ability', gamestate: game_state.GameState,
                formal_parameters_of_action: list, actual_parameters_of_action: list) -> tuple[bool, str]:
-        if ability_being_used.use_count >= self.shot_count:
-            return (False, f'This ability is {self.shot_count} and has been used {ability_being_used.use_count} times.')
-        # TODO: cycling
+        if self.shot_count != -1 and ability_being_used.use_count >= self.shot_count:
+            return (False, f'This ability is {self.shot_count}-shot and has been used {ability_being_used.use_count} times.')
+        
+        for ability in player_using_action.abilities:
+            shared_cycles = set(ability_being_used.ability_restrictions.cycling).intersection(set(ability.ability_restrictions.cycling))
+            if len(shared_cycles) != 0 and ability_being_used.use_count > ability.use_count:
+                return (False, f"{ability.ability_name} (used {ability.use_count} times) and {ability_being_used.ability_name} (used {ability_being_used.use_count} times) are cycling."
+                        f" Therefore, you cannot use {ability_being_used.ability_name} now.")
+
         # TODO: cooldown
         # TODO: multitask_cost
-        # TODO: self target
-        # TODO: loyal
-        # TODO: disloyal
+        for i in range(len(formal_parameters_of_action)):
+            if formal_parameters_of_action[i] == syn.SYNTAX_PARSER_PLAYERNAME:
+                targeted_player: pl.Player | None = actual_parameters_of_action[i]
+                if targeted_player is not None:
+                    alignments_same = targeted_player.alignment == player_using_action.alignment
+                    if (self.loyal and not alignments_same):
+                        return (False, f"This ability is loyal, but you are targeting someone not of your alignment.")
+                    if (self.disloyal and alignments_same):
+                        return (False, f"This ability is disloyal, but you are targeting someone of your alignment.")
+                    if (player_using_action == targeted_player):
+                        return (False, f"You are not allowed to self-target with this ability.")
+                    
         if self.day_required and not gamestate.is_day:
             return (False, f"This ability can only be used during the day.")
         if self.night_required and gamestate.is_day:
@@ -291,13 +325,6 @@ def is_submission_location_correct(submission_location: int, topic_number_parame
     elif int(submission_location) == c.IN_PM:
         return fol_interface.topic_is_pm(topic_number_parameter, username=username)
     return False
-
-
-class ParsingException(Exception):
-    pass
-
-class ActionException(Exception):
-    pass
 
 
 """

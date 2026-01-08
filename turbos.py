@@ -10,12 +10,12 @@ import config
 import constants as c
 import main
 import ability
-import post
-from . import syntax_parser_standard as syn
+import post as p
+import syntax_parser_standard as syn
 from role_standards import verify_standard as ver
 import roles
 import inspect
-import turbo_setup
+import setup
 
 turbo_task: asyncio.Task | None = None
 posting_queue_task:  asyncio.Task | None = None
@@ -24,13 +24,13 @@ playerlist: list[str] = []
 day_length_minutes = 10
 night_length_minutes = 3
 topic_id = 9145
-allow_multivoting = True
 
-setup = turbo_setup.get_setup("popcorn")
-intended_player_cap = 3
+setup_object = setup.get_setup("mountainous3")
+assert setup_object is not None
 
-ALLOWED_SETUPS = [setup.game_name.lower() for setup in turbo_setup.setups]
+ALLOWED_SETUPS = setup.list_available_setups()
 ALLOWED_TOPIC_IDS = [9524, 9145]
+TURBO_HOST_ACCOUNTS = ["Zwischenzug"]
 
 async def do_turbos():
     global turbo_task
@@ -44,123 +44,109 @@ def get_turbo_help_string() -> str:
     with open("about_zugbot_turbos.md") as about_zugbot_turbos_file:
         return about_zugbot_turbos_file.read()
 
-def display_help_post(discard_1, discard_2, post: post.Post):
-    string_to_post = get_turbo_help_string()
-    string_to_post += "\nAvailable Setups: " + ', '.join([setup.game_name for setup in turbo_setup.setups])
-    fol_interface.create_post(string_to_post, topic_id_parameter=post.topicNumber)
+def display_help_post():
+    def inner_func(discard_1, discard_2, discard_3, post: p.Post):
+        string_to_post = get_turbo_help_string()
+        string_to_post += "\nAvailable Setups: " + ', '.join(ALLOWED_SETUPS)
+        fol_interface.create_post(string_to_post, topic_id_parameter=post.topicNumber)
+    return ability.Action(inner_func)
 
-def start_game(discard_1, discard_2, post: post.Post):
-    global playerlist
-    if len(playerlist) != intended_player_cap:
-        fol_interface.create_post(f"The game cannot be started, because it is not full. However, " 
-                                  "if you want, you can change the number of players required to fill.", topic_id_parameter=post.topicNumber)
-    elif setup is None:
-        fol_interface.create_post(f"No setup is selected, so the game cannot start yet.", topic_id_parameter=post.topicNumber)
-    elif not setup.supports_playercount(intended_player_cap):
-        fol_interface.create_post(f"This setup does not support {intended_player_cap} players. Change the player cap or setup.", 
-                                  topic_id_parameter=post.topicNumber)
-    else:
-        fol_interface.create_post(f"Starting game.", topic_id_parameter=post.topicNumber)
-        assert turbo_task is not None
-        assert posting_queue_task is not None
-        turbo_task.cancel()
-        posting_queue_task.cancel()
-
-def join_game(discard_1, discard_2, post: post.Post):
-    global playerlist
-
-    if post.poster.lower() in [player.lower() for player in playerlist]:
-        fol_interface.create_post(f"{post.poster} is already in the game!", topic_id_parameter=post.topicNumber)
-    elif len(playerlist) == intended_player_cap:
-        fol_interface.create_post(f"The game is already full!", topic_id_parameter=post.topicNumber)
-    else:
-        fol_interface.create_post(f"{post.poster} has joined the game.", topic_id_parameter=post.topicNumber)
-        playerlist.append(post.poster)
-
-def leave_game(discard_1, discard_2, post: post.Post):
-    global playerlist
-    if post.poster.lower() in [player.lower() for player in playerlist]:
-        fol_interface.create_post(f"{post.poster} has left the game.", topic_id_parameter=post.topicNumber)
-        playerlist.remove(post.poster)
-    else:
-        fol_interface.create_post(f"{post.poster} is not in the game, so they cannot leave.", topic_id_parameter=post.topicNumber)
-
-def modify_game_settings(discard_1, discard_2, setting_to_change: str, value: str, post: post.Post):
-    global day_length_minutes
-    global night_length_minutes
-    global topic_id
-    global allow_multivoting
-    global setup
-    global intended_player_cap
-    if setting_to_change.lower() == "day_length":
-        try:
-            value_int = int(value)
-            assert value_int > 1
-            fol_interface.create_post(f"Days are now {value_int} minutes long.", topic_id_parameter=post.topicNumber)
-            day_length_minutes = value_int
-        except ValueError | AssertionError:
-            fol_interface.create_post(f"{value} is not an integer greater than 1.", topic_id_parameter=post.topicNumber)
-    elif setting_to_change.lower() == "night_length":
-        try:
-            value_int = int(value)
-            assert value_int > 1
-            fol_interface.create_post(f"Nights are now {value_int} minutes long.", topic_id_parameter=post.topicNumber)
-            night_length_minutes = value_int
-        except ValueError:
-            fol_interface.create_post(f"{value} is not an integer.", topic_id_parameter=post.topicNumber)
-        except AssertionError:
-            fol_interface.create_post(f"{value} is not an integer greater than 1.", topic_id_parameter=post.topicNumber)
-    elif setting_to_change.lower() == "topic_id":
-        try:
-            value_int = int(value)
-            assert value_int in ALLOWED_TOPIC_IDS
-            fol_interface.create_post(f"The game will now be played in the specified thread.",
-                                  topic_id_parameter=post.topicNumber)
-            topic_id = value_int
-        except ValueError:
-            fol_interface.create_post(f"{value} is not an integer.", topic_id_parameter=post.topicNumber)
-        except AssertionError:
-            fol_interface.create_post(f"{value} is not in the list of allowed topic IDs, which is: {', '.join([str(x) for x in ALLOWED_TOPIC_IDS])}.", topic_id_parameter=post.topicNumber)
-    elif setting_to_change.lower() == "allow_multivoting":
-        if value.lower() == "true":
-            allow_multivoting = True
-            fol_interface.create_post("Multivoting is now allowed.", topic_id_parameter=post.topicNumber)
-        elif value.lower() == "false":
-            allow_multivoting = False
-            fol_interface.create_post("Multivoting is now disabled.", topic_id_parameter=post.topicNumber)
+def start_game():
+    def inner_func(discard_1, discard_2, discard_3, post: p.Post):
+        global playerlist
+        assert setup_object is not None
+        if len(playerlist) != setup_object.playercount:
+            fol_interface.create_post(f"The game cannot be started, because it is not full.", topic_id_parameter=post.topicNumber)
         else:
-            fol_interface.create_post("This is not a valid setting for multivoting. Valid settings are 'true' and 'false'.", topic_id_parameter=post.topicNumber)
-    elif setting_to_change.lower() == "setup":
-        requested_setup = turbo_setup.get_setup(value)
-        if requested_setup is None:
-            fol_interface.create_post(f"{value} is not a supported setup.", topic_id_parameter=post.topicNumber)
+            fol_interface.create_post(f"Starting game.", topic_id_parameter=post.topicNumber)
+            assert turbo_task is not None
+            assert posting_queue_task is not None
+            turbo_task.cancel()
+            posting_queue_task.cancel()
+    return ability.Action(inner_func)
+
+def join_game():
+    def inner_func(discard_1, discard_2, discard_3, post: p.Post):
+        assert setup_object is not None
+        global playerlist
+        if post.poster.lower() in [player.lower() for player in playerlist]:
+            fol_interface.create_post(f"{post.poster} is already in the game!", topic_id_parameter=post.topicNumber)
+        elif len(playerlist) == setup_object.playercount:
+            fol_interface.create_post(f"The game is already full!", topic_id_parameter=post.topicNumber)
         else:
-            setup = requested_setup
-            fol_interface.create_post(f"Setup is now set to {value}.", topic_id_parameter=post.topicNumber)
-    elif setting_to_change.lower() == "playercount":
-        try:
-            value_int = int(value)
-            assert value_int >= 3
-            fol_interface.create_post(f"This game will now cap at {value_int} players.", topic_id_parameter=post.topicNumber)
-            intended_player_cap = value_int
-        except ValueError:
-            fol_interface.create_post(f"{value} is not an integer greater than or equal to 3.", topic_id_parameter=post.topicNumber)
-        except AssertionError:
-            fol_interface.create_post(f"{value} is not an integer greater than or equal to 3.", topic_id_parameter=post.topicNumber)
+            fol_interface.create_post(f"{post.poster} has joined the game.", topic_id_parameter=post.topicNumber)
+            playerlist.append(post.poster)
+    return ability.Action(inner_func)
 
-def display_current_settings(discard_1, discard_2, post: post.Post):
-    string_to_post = ''
-    string_to_post += f"Day length (minutes): {day_length_minutes}\n"
-    string_to_post += f"Night length (minutes): {night_length_minutes}\n"
-    string_to_post += f"Topic ID: {topic_id}\n"
-    string_to_post += f"Multivoting allowed: {allow_multivoting}\n"
-    string_to_post += f"Current Playerlist: {', '.join(playerlist)}\n"
-    string_to_post += f"Current Setup: {setup.game_name if setup is not None else 'None'}\n"
-    string_to_post += f"Current Playercap: {intended_player_cap}\n"
-    fol_interface.create_post(string_to_post=string_to_post, topic_id_parameter=post.topicNumber)
+def leave_game():
+    def inner_func(discard_1, discard_2, discard_3, post: p.Post):
+        global playerlist
+        if post.poster.lower() in [player.lower() for player in playerlist]:
+            fol_interface.create_post(f"{post.poster} has left the game.", topic_id_parameter=post.topicNumber)
+            playerlist.remove(post.poster)
+        else:
+            fol_interface.create_post(f"{post.poster} is not in the game, so they cannot leave.", topic_id_parameter=post.topicNumber)
+    return ability.Action(inner_func)
+
+def modify_game_settings():
+    def inner_func(discard_1, discard_2, discard_3, setting_to_change: str, value: str, post: p.Post):
+        global day_length_minutes
+        global night_length_minutes
+        global topic_id
+        global setup_object
+        if setting_to_change.lower() == "day_length":
+            try:
+                value_int = int(value)
+                assert value_int > 1
+                fol_interface.create_post(f"Days are now {value_int} minutes long.", topic_id_parameter=post.topicNumber)
+                day_length_minutes = value_int
+            except ValueError | AssertionError:
+                fol_interface.create_post(f"{value} is not an integer greater than 1.", topic_id_parameter=post.topicNumber)
+        elif setting_to_change.lower() == "night_length":
+            try:
+                value_int = int(value)
+                assert value_int > 1
+                fol_interface.create_post(f"Nights are now {value_int} minutes long.", topic_id_parameter=post.topicNumber)
+                night_length_minutes = value_int
+            except ValueError:
+                fol_interface.create_post(f"{value} is not an integer.", topic_id_parameter=post.topicNumber)
+            except AssertionError:
+                fol_interface.create_post(f"{value} is not an integer greater than 1.", topic_id_parameter=post.topicNumber)
+        elif setting_to_change.lower() == "topic_id":
+            try:
+                value_int = int(value)
+                assert value_int in ALLOWED_TOPIC_IDS
+                fol_interface.create_post(f"The game will now be played in the specified thread.",
+                                    topic_id_parameter=post.topicNumber)
+                topic_id = value_int
+            except ValueError:
+                fol_interface.create_post(f"{value} is not an integer.", topic_id_parameter=post.topicNumber)
+            except AssertionError:
+                fol_interface.create_post(f"{value} is not in the list of allowed topic IDs, which is: {', '.join([str(x) for x in ALLOWED_TOPIC_IDS])}.", topic_id_parameter=post.topicNumber)
+        elif setting_to_change.lower() == "setup":
+            requested_setup = setup.get_setup(value)
+            if requested_setup is None:
+                fol_interface.create_post(f"{value} is not a supported setup.", topic_id_parameter=post.topicNumber)
+            else:
+                setup_object = requested_setup
+                fol_interface.create_post(f"Setup is now set to {value}.", topic_id_parameter=post.topicNumber)
+    return ability.Action(inner_func)
+
+def display_current_settings():
+    def inner_func(discard_1, discard_2, discard_3, post: p.Post):
+        assert setup_object is not None
+        string_to_post = ''
+        string_to_post += f"Day length (minutes): {day_length_minutes}\n"
+        string_to_post += f"Night length (minutes): {night_length_minutes}\n"
+        string_to_post += f"Topic ID: {topic_id}\n"
+        string_to_post += f"Current Setup: {setup_object.game_name if setup_object is not None else 'None'}\n"
+        string_to_post += f"Playercount: {len(playerlist)}/{setup_object.playercount}\n"
+        string_to_post += f"Playerlist: {', '.join(playerlist) if playerlist else 'No players currently signed up.'}"
+        fol_interface.create_post(string_to_post=string_to_post, topic_id_parameter=post.topicNumber)
+    return ability.Action(inner_func)
 
 
-def make_simplified_ability(ability_name: str, syntax_parser, use_action_instant) -> ability.Ability:
+def make_simplified_ability(ability_name: str, syntax_parser: syn.SyntaxParser, use_action_instant: ability.Action) -> ability.Ability:
     """
     Makes an Ability with the provided parameters, and many defaults for ones that aren't
     useful for turbos.py.
@@ -174,7 +160,6 @@ def make_simplified_ability(ability_name: str, syntax_parser, use_action_instant
         is_instant=True,
         ability_priority=-1,
         willpower_required=None,
-        ignore_action_deadline=False,
         action_types=[c.FALSE_ACTION]
     )
     return result_ability
@@ -183,37 +168,37 @@ def get_turbo_out_of_game_abilities() -> list["ability.Ability"]:
     help_ability = make_simplified_ability(
         ability_name="Print help",
         syntax_parser=syn.SyntaxParser(command_name="help", parameter_list=[]),
-        use_action_instant=display_help_post,
+        use_action_instant=display_help_post(),
     )
     signup_ability = make_simplified_ability(
         ability_name="Join Game",
         syntax_parser=syn.SyntaxParser(command_name="in", parameter_list=[]),
-        use_action_instant=join_game,
+        use_action_instant=join_game(),
     )
     quit_ability = make_simplified_ability(
         ability_name="Leave Game",
         syntax_parser=syn.SyntaxParser(command_name="out", parameter_list=[]),
-        use_action_instant=leave_game,
+        use_action_instant=leave_game(),
     )
     start_ability = make_simplified_ability(
         ability_name="Start Game",
         syntax_parser=syn.SyntaxParser(command_name="start", parameter_list=[]),
-        use_action_instant=start_game,
+        use_action_instant=start_game(),
     )
     modify_ability = make_simplified_ability(
         ability_name="Modify Game",
         syntax_parser=syn.SyntaxParser(command_name="modify", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING, syn.SYNTAX_PARSER_NO_SPACE_STRING]),
-        use_action_instant=modify_game_settings,
+        use_action_instant=modify_game_settings(),
     )
     display_ability = make_simplified_ability(
         ability_name="Display settings",
         syntax_parser=syn.SyntaxParser(command_name="display", parameter_list=[]),
-        use_action_instant=display_current_settings
+        use_action_instant=display_current_settings()
     )
 
     return [help_ability, signup_ability, quit_ability, start_ability, modify_ability, display_ability]
 
-async def process_turbo_post(post: post.Post, out_of_game_abilities: list[ability.Ability]):
+async def process_turbo_post(post: p.Post, out_of_game_abilities: list[ability.Ability]):
     for ability in out_of_game_abilities:        
         try:
             parameters = ability.syntax_parser.parse_discourse_post(post)
@@ -225,7 +210,7 @@ async def process_turbo_post(post: post.Post, out_of_game_abilities: list[abilit
         
         parameters.append(post) # This use of Ability often wants the post as a parameter, to read topic ID and the like
         print(f"Running instant action with {len(parameters)} parameters, plus the player and gamestate")
-        await ability.action.run_action(None, None, *parameters) # type: ignore
+        await ability.action.run_action(None, None, ability, *parameters) # type: ignore
         ability.use_count += 1
 
 async def run_turbo_listener():
@@ -249,22 +234,28 @@ if __name__ == "__main__":
             print("Turbo starting now!")
 
         # Setting config to chosen settings
-        assert setup is not None
+        assert setup_object is not None
+
+        config.game_name = setup_object.game_name
+        config.allow_no_exe = setup_object.allow_no_exe
+        config.do_votecounts = setup_object.do_votecounts
+        config.first_phase_is_day = setup_object.first_phase_is_day
+        config.first_phase_count = setup_object.first_phase_count
+        config.playercount = setup_object.playercount
+        config.get_rolelist = setup_object.get_rolelist
+        config.allow_multivoting = setup_object.allow_multivoting
+        config.no_exe_wins_ties = setup_object.no_exe_wins_ties
+        config.is_botf = setup_object.is_botf
+        config.flips_folder = setup_object.flips_folder
+
         config.playerlist_usernames = playerlist
         config.day_length = day_length_minutes
         config.night_length = night_length_minutes
         config.topic_id = topic_id
-        config.allow_multivoting = allow_multivoting
+
+        config.original_host_usernames = TURBO_HOST_ACCOUNTS
+        config.host_usernames = list(map(lambda x : x.lower(), TURBO_HOST_ACCOUNTS))
         
-        config.allow_no_exe = setup.allow_no_exe
-        config.do_votecounts = setup.do_votecounts
-        config.first_phase_is_day = setup.first_phase_is_day
-        config.first_phase_count = setup.first_phase_count
-        config.game_name = setup.game_name
-
-        rolelist = setup.get_rolelist(len(playerlist))
-        config.get_rolelist = lambda : rolelist
-
         try:
             asyncio.run(main.start_all_components())
         except asyncio.exceptions.CancelledError:

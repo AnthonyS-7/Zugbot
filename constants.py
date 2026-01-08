@@ -6,6 +6,18 @@ class Alignment:
         self.alignment = alignment
         pass
 
+    def __eq__(self, other):
+        if type(other) != Alignment:
+            return False
+        return self.alignment == other.alignment
+    
+    def string_rep(self):
+        if self == TOWN:
+            return 'Town'
+        if self == MAFIA:
+            return 'Mafia'
+        return 'ERROR (this shouldn\'t ever happen)'
+
 TOWN = Alignment(0)
 MAFIA = Alignment(1)
 # Alignments Enum End
@@ -28,3 +40,7 @@ FALSE_ACTION = "false_action" # Used for abilities which are not actually action
 LOGGER = logging.Logger(name="latest.log")
 DEBUG = logging.DEBUG
 ERROR = logging.ERROR
+
+SETUP_FOLDER = "setups" # not in config because it should never be changed.
+SETUP_FILE_NAME = "setup_definition" # excludes the .py intentionally
+FLIPS_FOLDER_NAME = "flips"

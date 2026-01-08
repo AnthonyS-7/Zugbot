@@ -1,11 +1,15 @@
-Need:
+# Necessary Capabilities
 
-- way to determine what abilities can be used together (likely give each ability a vector of "cost" to use, and require that each entry of the sum of all abilities used is less than some maximum. this vector should actually be a dictionary, for more meaningful indexing)
+- Way to determine what abilities can be used together (likely give each ability a vector of "cost" to use, and require that each entry of the sum of all abilities used is less than some maximum. this vector should actually be a dictionary, for more meaningful indexing)
   - Doing this through AbilityRestrictions.
-- way to log what was used, and make trackers/watchers work
-- way to indicate what is standard and well-behaved
-- way to do NAR
-- standard modifiers
+- Way to log what was used, and make trackers/watchers work
+   - Going to make the action processor record visits and action types, and store these logs in the gamestate.
+- Way to indicate what is standard and well-behaved
+   - Going to add a boolean variable to Ability
+- Way to do NAR
+   - Will be handled by the action processor, and will be restricted to only when there are standard/well-behaved abilites in play.
+   - Likely toggleable in the config.
+- Standard modifiers
   - Doing this through AbilityModifiers (on the Ability side) and Passives (on the Player side)
 
 The following is a list of all Standard Zugbot mech. (...once this is implemented.)
@@ -40,10 +44,9 @@ As seen in the example above, both Abilities and Passives can have Modifiers.
 
 # Standard Abilities:
 - Visitor (Visits a player, no other effects)
-- Non-visiting Alignment Cop
-- Non-visiting Doctor
-- Non-visiting Role Cop
-- Non-visiting Vigilante
+- Alignment Cop
+- Doctor
+- Vigilante
 - add more...
 
 # Standard Role Modifiers:
