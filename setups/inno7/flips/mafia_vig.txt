@@ -1,0 +1,5 @@
+# [color=red] Mafia Vigilante [/color]
+
+**Shoot (Night, 1-Shot, Privately Submitted, Self-Target Disallowed)** - Use /shoot [player] to kill target player.
+
+Reach parity with the town.

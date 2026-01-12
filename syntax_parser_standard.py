@@ -30,6 +30,7 @@ class SyntaxParser:
         for num in range(len(self.parameter_list)):
             this_parameter = re_result.group(num + 1)
             if self.parameter_list[num] == SYNTAX_PARSER_PLAYERNAME:
+                assert modbot.gamestate is not None
                 this_parameter = modbot.resolve_name(this_parameter)
                 this_parameter = modbot.gamestate.get_player_object_living_players_only(this_parameter)
                 if this_parameter is None:

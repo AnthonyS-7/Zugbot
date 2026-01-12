@@ -23,6 +23,7 @@ GAMESTATE_PICKLE_PATH = "gamestate.pkl" # refers to tuple of (gamestate object, 
 
 
 last_save_time = -1
+consecutive_failed_saves = 0
 
 async def save_every_x_minutes(minutes: float):
     """
@@ -135,10 +136,20 @@ def save_json():
     json.dump(to_save, json_file, indent=4, default=queue_encoder)
     json_file.close()
 
+
 def save_pickle():
-    gamestate_file = open(GAMESTATE_PICKLE_PATH, 'bw')
-    dill.dump((modbot.gamestate, ability.all_abilities), gamestate_file)
-    gamestate_file.close()
+    global consecutive_failed_saves
+    try:
+        gamestate_file = open(GAMESTATE_PICKLE_PATH, 'bw')
+        dill.dump((modbot.gamestate, ability.all_abilities), gamestate_file)
+        gamestate_file.close()
+        consecutive_failed_saves = 0
+    except TypeError as e:
+        print(f"While saving, ran into a TypeError, likely because something was in progress during the save.")
+        consecutive_failed_saves += 1
+        print(f"{consecutive_failed_saves=}")
+
+    
 
 # def load_everything():
 #     gamestate_json = open(GAMESTATE_JSON_PATH, 'r')
@@ -158,7 +169,7 @@ def load_everything_and_convert_to_game():
     loaded_gamestate_json = json.load(gamestate_json, object_hook=queue_decoder)
     gamestate_json.close()
     restore_individual_variables(loaded_gamestate_json)
-        
+    
     gamestate_file = open(GAMESTATE_PICKLE_PATH, 'rb')
     gamestate_object, all_abilities = dill.load(gamestate_file)
     modbot.gamestate = gamestate_object

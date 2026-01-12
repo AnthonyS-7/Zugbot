@@ -59,13 +59,35 @@ def get_default_abilities():
         action=a.Action(nomination_use_action_instant),
         is_instant=True
     )
-    abilities_list = []
+    abilities_list = [abilities_standard.RESET_ABILITY()]
     if config.do_votecounts:
         abilities_list.append(abilities_standard.VOTECOUNT_ABILITY())
         abilities_list.append(abilities_standard.VOUTECOUNT_ABILITY())
     if config.is_botf:
         abilities_list.append(nominate_ability)
     return abilities_list
+
+def get_nightkill_ability():
+    """
+    In turbos specifically, there is a wolfchat on the forum where the nightkill must be submitted (as opposed to discord).
+
+    Mafia-aligned players are given this ability in turbos to allow this.
+    """
+    def nightkill_function(playername, gamestate, ability, target_player: 'Player'):
+        import modbot # Here to avoid circular import
+        modbot.submit_nightkill(target_player.username)
+
+    return a.Ability(
+        ability_name="Nightkill",
+        syntax_parser=syn.SyntaxParser("nightkill", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
+        action=a.Action(nightkill_function),
+        is_instant=True,
+        submission_location=c.IN_WOLFCHAT,
+        ignore_action_deadline=True,
+        ability_restrictions=a.AbilityRestrictions(night_required=True, day_required=False, disloyal=True,
+                                                   allowed_cycles=lambda x : x >= 0),
+        ability_modifiers=a.AbilityModifiers(damage_amount=1)
+    )
 
 class Redirection:
     """
@@ -129,7 +151,8 @@ class Player:
         self.health = 1
         self.rolecard_path = rolecard_path
         self.protection = 0.0
-        self.abilities = ([] if abilities is None else abilities) + get_default_abilities()
+        self.abilities = ([] if abilities is None else abilities) + get_default_abilities() \
+                          + ([get_nightkill_ability()] if alignment == c.MAFIA else [])
         self.willpower = willpower
         self.redirection = redirection
 
@@ -140,6 +163,11 @@ class Player:
             self.target_of_nomination: Player | None = None
 
         self.passives = passives if passives is not None else Passives()
+        self.actions_costs: dict[str, float] = dict() # This stores the costs of any instant actions during the current phase
+                                                    # and is used when verifying any (instant or non-instant) actions
+                                                    # to ensure they do not exceed the maximum costs
+                                                    # In other words, this is part of how multitasking (or the lack thereof)
+                                                    # is handled.
         
     def get_redirect(self, target_focus: float) -> 'Player':
         """
@@ -170,6 +198,10 @@ class Player:
     
     def do_day_start_changes(self):
         self.protection = 0.0
+        self.actions_costs = dict()
+
+    def do_night_start_changes(self):
+        self.actions_costs = dict()
 
     def get_alignment(self, modifiers: 'a.AbilityModifiers'):
         if self.passives.invest_alignment is None or self.passives.invest_resistance < modifiers.invest_power:

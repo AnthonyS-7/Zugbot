@@ -1,11 +1,28 @@
-boolean_var: bool = True
-if boolean_var:
-    import ability
-    import syntax_parser_standard as syn
-    import fol_interface
-    import player
+import ability
+import syntax_parser_standard as syn
+import fol_interface
+import player
 from typing import Callable
 import constants as c
+
+def RESET_ABILITY() -> 'ability.Ability':
+    """
+    This ability unsubmits all currently submitted end-of-phase abilities.
+    """
+    def reset_function(acting_player: player.Player, gamestate, ability: ability.Ability):
+        acting_player.unresolved_actions = []
+
+    return ability.Ability(
+        ability_name="Reset Submission",
+        syntax_parser=syn.SyntaxParser("reset", parameter_list=[]),
+        action=ability.Action(reset_function),
+        submission_location=c.IN_PM,
+        is_instant=True,
+        ability_restrictions=ability.AbilityRestrictions(day_required=False, night_required=False),
+        action_types=[c.FALSE_ACTION],
+        ignore_action_deadline=True
+    )
+
 
 def VOTECOUNT_ABILITY() -> "ability.Ability":
     """
@@ -31,6 +48,30 @@ def VOUTECOUNT_ABILITY() -> "ability.Ability":
         is_instant=True,
         ignore_action_deadline=True,
         ability_restrictions=ability.AbilityRestrictions(night_required=False, day_required=True)
+    )
+
+def DOCTOR_ACTION() -> "ability.Action":
+    """
+    Returns a doctor action.
+    """
+    def doc_function(acting_player: player.Player, gamestate, ability: ability.Ability, target_player: player.Player):
+        target_player.receive_protection(ability.ability_modifiers)
+    return ability.Action(doc_function)
+
+def DOCTOR_ABILITY(protection_level=1.0, shot_count=-1, target_focus=0.0, ) -> "ability.Ability":
+    """
+    Returns a doctor ability.
+    """
+    return ability.Ability(
+        ability_name="Doctor Protection",
+        syntax_parser=syn.SyntaxParser("protect", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
+        action=DOCTOR_ACTION(),
+        is_instant=False,
+        ability_priority=-1, # Make protection be before kills!
+        ignore_action_deadline=False,
+        ability_restrictions=ability.AbilityRestrictions(night_required=True, day_required=False,
+                                                         shot_count=shot_count, self_target_allowed=False),
+        ability_modifiers=ability.AbilityModifiers(protection_level=protection_level, target_focus=target_focus),
     )
 
 def COP_ACTION() -> "ability.Action":
@@ -103,36 +144,56 @@ def IC_ABILITY(allowed_cycles: list[int] | Callable[[int], bool]) -> "ability.Ab
                                                          shot_count=1, allowed_cycles=allowed_cycles)
     )
 
+def make_cycling(abilities_list: list["ability.Ability"], cycle_name: str):
+    """
+    This makes the passed abilities cycle together with the specified cycle name.
+    """
+    for abil in abilities_list:
+        abil.ability_restrictions.cycling.append(cycle_name)
 
+def make_non_multitaskable(abilities_list: list["ability.Ability"], cost_name: str):
+    """
+    This makes the passed abilities unable to be multitasked together.
+    """
+    for abil in abilities_list:
+        abil.ability_restrictions.multitask_cost[cost_name] = 1
 
 # player creators start here
 
-def MAKE_VANILLA_TOWN(username: str) -> "player.Player":
+def MAKE_VANILLA_TOWN(username: str, flip_path: str) -> "player.Player":
     import player
-    result = player.Player(username, c.TOWN, "town.txt", abilities=None)
+    result = player.Player(username, c.TOWN, flip_path, abilities=None)
     return result
 
-def MAKE_MAFIA_GOON(username: str) -> "player.Player":
+def MAKE_MAFIA_GOON(username: str, flip_path: str) -> "player.Player":
     import player
-    result = player.Player(username, c.MAFIA, "mafia.txt", abilities=None)
+    result = player.Player(username, c.MAFIA, flip_path, abilities=None)
     return result
 
-def MAKE_TOWN_COP(username: str, invest_strength=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
+def MAKE_TOWN_COP(username: str, flip_path: str, invest_strength=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
     import player
-    result = player.Player(username, c.TOWN, 'town_cop.txt', abilities=[
+    result = player.Player(username, c.TOWN, flip_path, abilities=[
         COP_ABILITY(invest_strength=invest_strength, shot_count=shot_count, target_focus=target_focus)])
     return result
 
-def MAKE_TOWN_VIG(username: str, damage_amount=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
+def MAKE_TOWN_VIG(username: str, flip_path: str, damage_amount=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
     import player
-    result = player.Player(username, c.TOWN, 'town_vig.txt', abilities=
+    result = player.Player(username, c.TOWN, flip_path, abilities=
                            [VIG_ABILITY(damage_amount=damage_amount, shot_count=shot_count, target_focus=target_focus)]
                            )
     return result
 
-def MAKE_TOWN_INNOCENT_CHILD(username: str, allowed_cycles : list[int] | Callable[[int], bool]=lambda x : x >= 1):
+def MAKE_MAFIA_VIG(username: str, flip_path: str, damage_amount=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
     import player
-    result = player.Player(username, c.TOWN, 'town_innocent_child.txt', abilities=[
+    result = player.Player(username, c.MAFIA, flip_path, abilities=
+                           [VIG_ABILITY(damage_amount=damage_amount, shot_count=shot_count, target_focus=target_focus)]
+                           )
+    return result
+
+
+def MAKE_TOWN_INNOCENT_CHILD(username: str, flip_path: str, allowed_cycles : list[int] | Callable[[int], bool]=lambda x : x >= 1):
+    import player
+    result = player.Player(username, c.TOWN, flip_path, abilities=[
         IC_ABILITY(allowed_cycles=allowed_cycles)
     ])
     return result

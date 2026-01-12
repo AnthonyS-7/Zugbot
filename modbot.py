@@ -26,14 +26,32 @@ assert config.action_deadline >= 1
 import constants as c
 import main
 
-first_import = True # To prevent code from being run more than once due to imports
-
+# Global variables (initializations here are mostly just for types; they are overwritten when starting the game or by restore.py)
 rolelist = config.get_rolelist()
+nightkill_choice = ''
+continue_posting_vcs = True
+posts_in_thread_at_last_vc = -1
+game_started = False
+action_submission_open = False
+game_end_announced_already = False
+game_restored_from_file = False
+all_abilities_are_disabled = False
+gamestate: game_state.GameState | None = None
+capitalization_fixer : dict[str, str] = dict()
 
-if first_import:
-    first_import = False
-    
-    # Gamestate Variables Start (do not change unless debugging) (also includes program state variables)
+def reset_globals_to_defaults():
+    global rolelist
+    global nightkill_choice
+    global continue_posting_vcs
+    global posts_in_thread_at_last_vc
+    global game_started
+    global action_submission_open
+    global game_end_announced_already
+    global game_restored_from_file
+    global all_abilities_are_disabled
+    global gamestate
+    global capitalization_fixer
+    rolelist = config.get_rolelist()
     nightkill_choice = ''
     continue_posting_vcs = True
     posts_in_thread_at_last_vc = -1
@@ -41,48 +59,19 @@ if first_import:
     action_submission_open = False
     game_end_announced_already = False
     game_restored_from_file = False
-    # Gamestate Variables End
-
-    # Warnings Begin
-
-    if not config.rand_roles:
-        print("Roles are NOT randomized! If this is used in actual play, roles must be randomized.")
-
-    # Warnings End
-
-    # Main program begin
-
-    if config.rand_roles:
-        random.seed(time.time())
-        random.shuffle(rolelist)
-
-    # mafia_list : list[str] = []
-
-    playerlist_player_objects : list['p.Player'] = [] # This list is not restored by restore.py so it shouldn't be used directly except when initializing the gamestate
-
-    for num in range(len(rolelist)):
-        username = config.playerlist_usernames[num]
-        playerlist_player_objects.append(rolelist[num](username))
-
-    gamestate = game_state.GameState([player for player in playerlist_player_objects], # copying the list
-                                    is_day=config.first_phase_is_day,
-                                    phase_count=config.first_phase_count,
-                                    wincon_is_parity=True)
-
-    capitalization_fixer : dict[str, str] = dict()
-    for player in config.playerlist_usernames:
-        capitalization_fixer[player.lower()] = player
-
     all_abilities_are_disabled = False
+    gamestate = None
+    capitalization_fixer = dict()
 
-def get_mafia_list(gamestate: game_state.GameState) -> list[str]:
+
+def get_mafia_list(gamestate: "game_state.GameState") -> list[str]:
     """
     Returns the usernames of all mafia members.
     """
     mafia_players = gamestate.filter_players(filter_func=lambda player : player.alignment == c.MAFIA, living_players_only=False)
     return list(map(lambda player : player.username, mafia_players))
 
-async def announce_game_end():
+async def announce_game_end(gamestate: game_state.GameState):
     global continue_posting_vcs
     global game_end_announced_already
 
@@ -154,6 +143,7 @@ async def resolve_day_or_night_end_actions(elimination_or_nightkill: str, gamest
             actions_to_be_resolved_at_phase_end.append((ability_object, 
                                                         [player, gamestate, unresolved_action.parameters], 
                                                         ability_object.ability_priority))
+        player.unresolved_actions = [] # remove all unresolved actions
 
     actions_to_be_resolved_at_phase_end.append((None, [], 0)) 
     # Above ensures there's an action with priority=0, so the elimination/nightkill is processed
@@ -226,6 +216,7 @@ def resolve_name(nickname: str):
     """
     if len(nickname) > 0:
         nickname = nickname[1:] if nickname[0] == '@' else nickname
+    assert gamestate is not None
     return fol_interface.resolve_substring_alias(nickname, gamestate.get_living_players(), for_votecount=False)
 
 def get_pregame_post_string():
@@ -249,7 +240,7 @@ def get_pregame_post_string():
 
 def submit_nightkill(player_to_kill: str) -> bool:
     global nightkill_choice
-    if not gamestate.is_day and gamestate.is_valid_nightkill(player_to_kill):
+    if gamestate is not None and not gamestate.is_day and gamestate.is_valid_nightkill(player_to_kill):
         nightkill_choice = capitalization_fixer[player_to_kill.lower()]
         return True
     return False
@@ -277,7 +268,7 @@ async def run_vc_bot():
     while continue_posting_vcs:
         await asyncio.sleep(config.votecount_time_interval * 60)
         new_postcount = int(await fol_interface.get_number_of_posts_in_thread(topic_id=config.topic_id))
-        if gamestate.is_day and game_started and new_postcount - posts_in_thread_at_last_vc > config.votecount_post_interval and continue_posting_vcs:
+        if gamestate is not None and gamestate.is_day and game_started and new_postcount - posts_in_thread_at_last_vc > config.votecount_post_interval and continue_posting_vcs:
             await fol_interface.post_votecount(nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations())
             posts_in_thread_at_last_vc = new_postcount
     return None
@@ -309,10 +300,11 @@ async def run_action_processor():
         print(f"There are {len(new_posts)} new posts to process")
         for post in new_posts:
             print(f"Processing post by: {post.poster}")
-            await process_post(post, gamestate, action_submission_open)
-            if gamestate.is_game_over():
-                await announce_game_end()
-                return None
+            if gamestate is not None:
+                await process_post(post, gamestate, action_submission_open)
+                if gamestate.is_game_over():
+                    await announce_game_end(gamestate)
+                    return None
     
 def process_substitution_for_mafia_and_player_lists_and_nightkill(current_player: str, new_player: str):
     """
@@ -348,12 +340,56 @@ async def start_game() -> bool:
     """
     This method:
 
+    - Initializes modbot.py's global variables
     - Posts the pregame "About Zugbot" post
     - Hands out role PMs
     - Closes the thread, and sets the thread open timer
       - If the game start time isn't set in the config file, this is automatically set here
 
     """
+    global rolelist
+    global nightkill_choice
+    global continue_posting_vcs
+    global posts_in_thread_at_last_vc
+    global game_started
+    global action_submission_open
+    global game_end_announced_already
+    global game_restored_from_file
+    global all_abilities_are_disabled
+    global gamestate
+    global capitalization_fixer
+
+    rolelist = config.get_rolelist()
+    nightkill_choice = ''
+    continue_posting_vcs = True
+    posts_in_thread_at_last_vc = -1
+    game_started = False
+    action_submission_open = False
+    game_end_announced_already = False
+    game_restored_from_file = False
+    all_abilities_are_disabled = False
+
+    print("About to decide roles.")
+    if config.rand_roles:
+        random.seed(time.time())
+        random.shuffle(rolelist)
+
+    playerlist_player_objects : list['p.Player'] = []
+
+    for num in range(len(rolelist)):
+        username = config.playerlist_usernames[num]
+        playerlist_player_objects.append(rolelist[num](username))
+        print(f"Created player object {num + 1}.")
+
+    gamestate = game_state.GameState([player for player in playerlist_player_objects], # copying the list
+                                    is_day=config.first_phase_is_day,
+                                    phase_count=config.first_phase_count,
+                                    wincon_is_parity=True)
+
+    capitalization_fixer = dict()
+    for player in config.playerlist_usernames:
+        capitalization_fixer[player.lower()] = player
+
     fol_interface.create_post(get_pregame_post_string(), topic_id_parameter=config.topic_id)
     await fol_interface.close_or_open_thread(close=True)
     await asyncio.sleep(5)
@@ -362,6 +398,8 @@ async def start_game() -> bool:
         print("Playerlist is not valid! Game start cancelled.")
         return False
     await give_role_pms(playerlist=config.playerlist_usernames, gamestate=gamestate)
+    await fol_interface.make_wolfchat_pm(
+        list(filter(lambda user : gamestate.get_player_object_original_players(user).alignment == c.MAFIA, config.playerlist_usernames))) # type: ignore
     if config.game_start_time != '':
         game_start_time = datetime.datetime.strptime(config.game_start_time, "%Y-%m-%d %H:%M")
         await fol_interface.set_timer(f"{config.game_start_time}{config.utc_offset}", close=False)
@@ -374,7 +412,7 @@ async def start_game() -> bool:
 def get_game_start_time() -> datetime.datetime:
     return datetime.datetime.strptime(config.game_start_time, "%Y-%m-%d %H:%M")
 
-async def do_day_start(game_start_time: datetime.datetime) -> tuple[datetime.datetime, datetime.datetime]:
+async def do_day_start(game_start_time: datetime.datetime, gamestate: game_state.GameState) -> tuple[datetime.datetime, datetime.datetime]:
     """
     If the day start time has not passed, or the game is not restored from a file, this method:
         - Does the day start changes that apply to all players
@@ -410,7 +448,7 @@ async def do_day_start(game_start_time: datetime.datetime) -> tuple[datetime.dat
     action_submission_open = True
     return actions_close_time, thread_close_time
 
-async def do_night_start(game_start_time: datetime.datetime) -> tuple[datetime.datetime, datetime.datetime]:
+async def do_night_start(game_start_time: datetime.datetime, gamestate: game_state.GameState) -> tuple[datetime.datetime, datetime.datetime]:
     """
     If the night start time has not passed, or the game is not restored from a file, this method:
         - Posts the night start post
@@ -433,6 +471,9 @@ async def do_night_start(game_start_time: datetime.datetime) -> tuple[datetime.d
     if night_start_time < datetime.datetime.now() and game_restored_from_file:
         game_restored_from_file = False
         return actions_close_time, thread_open_time
+    
+    for player in gamestate.original_players:
+        player.do_night_start_changes()
 
     await fol_interface.close_or_open_thread(close=True)
     fol_interface.announce_night_start(phase_number=gamestate.phase_count, living_players=gamestate.get_living_players())
@@ -451,13 +492,15 @@ async def run_modbot():
         started_successfully = await start_game()
         if not started_successfully:
             return
-
+        
+    assert gamestate is not None
     game_start_time = get_game_start_time()
     game_started = True
+    print("Game started.")
 
     while not gamestate.is_game_over():
         if gamestate.is_day: #going into this, gamestate should be day and have all night actions resolved
-            actions_close_time, thread_close_time = await do_day_start(game_start_time=game_start_time)
+            actions_close_time, thread_close_time = await do_day_start(game_start_time=game_start_time, gamestate=gamestate)
             await wait_for_time(actions_close_time)
             action_submission_open = False
             await wait_for_time(thread_close_time) # type: ignore
@@ -467,7 +510,7 @@ async def run_modbot():
             eliminated_player, was_tie = await fol_interface.decide_elimination()
             await resolve_day_or_night_end_actions(eliminated_player, gamestate, was_tie, is_day=True)
         else: #going into this, gamestate should be night and have the eliminated player dead
-            actions_close_time, thread_open_time = await do_night_start(game_start_time=game_start_time)
+            actions_close_time, thread_open_time = await do_night_start(game_start_time=game_start_time, gamestate=gamestate)
             await wait_for_time(actions_close_time)
             action_submission_open = False
             await wait_for_time(thread_open_time)
@@ -477,5 +520,4 @@ async def run_modbot():
                 nightkill_choice = gamestate.get_random_town()
             await resolve_day_or_night_end_actions(elimination_or_nightkill=nightkill_choice, gamestate=gamestate, was_tie=False, is_day=False)
 
-    await announce_game_end()
-
+    await announce_game_end(gamestate)

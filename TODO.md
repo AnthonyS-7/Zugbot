@@ -18,11 +18,9 @@
 
 
 #  TODO for turbo implementation
-- joat10
+- joat10 (high prio)
 - popcorn
 - cop9
-- desp8
-- inno7, inno4
 - godfather9
 - ita10
 - bomb10
@@ -39,18 +37,21 @@ role modifiers required:
 
 other reqs:
 - ITAs
-- Wolfchat (and factional kill submission) on the forum
 - The setups themselves
-- turbos.py updates & testing
 
 Things almost finished:
 - Cop (still needs n0 peek option)
 
-Things finished but need testing:
+Things finished but needs testing:
 - Vigilante
 - Innocent child
 - Shot restrictions (i.e. 1-shot)
 - cycle restrictions
+- inno7, inno4
+- desp8
+- Wolfchat (and factional kill submission) on the forum
+- turbos.py updates
 
 
-Note on Inventors: The inventor roles for these turbos will simply grant the target player an ability. Eventually, Zugbot will have an item system, but for these particular roles it is overkill. Because I am implementing inventors in this way (instead of in the more generalizable way of giving an item )
+
+Note on Inventors: The inventor roles for these turbos will simply grant the target player an ability. Eventually, Zugbot will have an item system, but for these particular roles it is overkill. Because I am implementing inventors in this way (instead of in the more generalizable way of giving an item)

@@ -47,6 +47,7 @@ with open('config.yaml', 'r') as config_file:
 
     debug_print_all_posts: bool = config_dict['debug_print_all_posts']
 
+    crash_on_exception: bool = config_dict['crash_on_exception']
 
     # Below this line is field from the setup loaded here
     game_name = setup_object.game_name
@@ -60,3 +61,6 @@ with open('config.yaml', 'r') as config_file:
     no_exe_wins_ties = setup_object.no_exe_wins_ties
     is_botf = setup_object.is_botf
     flips_folder = setup_object.flips_folder
+
+    # This setting is enabled in turbos.py
+    is_turbo = False

@@ -10,6 +10,8 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     intents = discord.Intents.default()
     intents.message_content = True
 
+    client_started = False
+
     client = discord.Client(intents=intents)
 
     @client.event
@@ -38,7 +40,11 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
         await client.close()
 
     async def start_discord_bot():
-        await client.start(token=token)
+        global client_started
+        if not client_started:
+            print("Starting discord client!")
+            await client.start(token=token)
+            client_started = True
 
     def turn_bot_off():
         """

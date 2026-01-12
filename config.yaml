@@ -34,9 +34,10 @@ turbo_pm_json_path: "turbo_pms.json" # ignored if not running turbos. For turbos
                                      # used to speed up role distribution.
 
 action_processor_sleep_seconds: 5 # Time slept between consecutive checks for new action submissions (in seconds)
+                                  # This has a large impact on rate limiting issues.
 
 delay_between_post_checks: 1 # Time slept between checks of the posting queue (in seconds)
-delay_between_posts: 4 # Minimum delay between posts Zugbot makes (in seconds)
+delay_between_posts: 2 # Minimum delay between posts Zugbot makes (in seconds)
 
 exception_retry_delay: 5 # Time to wait to retry an API call if an exception occurs (in seconds)
 max_exception_retries: 20 # Maximum number of times to retry an API call before giving up
@@ -50,3 +51,5 @@ votecount_post_interval: 10 # The number of posts between automatic votecount po
 
 
 debug_print_all_posts: true
+
+crash_on_exception: true # Makes Zugbot crash entirely when reaching an unhandeled exception. Also, inadvertently turns off restore saving.

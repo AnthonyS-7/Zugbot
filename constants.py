@@ -1,5 +1,3 @@
-import logging
-
 # Alignments Enum Start
 class Alignment:
     def __init__(self, alignment: int) -> None:
@@ -25,6 +23,7 @@ MAFIA = Alignment(1)
 # Action Submission Enum Start
 IN_THREAD = 0
 IN_PM = 1
+IN_WOLFCHAT = 2
 # Action Submission Enum End (for factional chats, IN_PM submission will eventually allow Discord submission)
 
 # Action Types Start
@@ -33,13 +32,10 @@ COMMUNICATIVE = "communicative"
 KILLING = "killing"
 MANIPULATIVE = "manipulative"
 PROTECTIVE = "protective"
+ACTION_TYPE_OTHER = "other"
 
 FALSE_ACTION = "false_action" # Used for abilities which are not actually actions, such as requesting votecounts
 # Action Types End
-
-LOGGER = logging.Logger(name="latest.log")
-DEBUG = logging.DEBUG
-ERROR = logging.ERROR
 
 SETUP_FOLDER = "setups" # not in config because it should never be changed.
 SETUP_FILE_NAME = "setup_definition" # excludes the .py intentionally

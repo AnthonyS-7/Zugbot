@@ -25,6 +25,7 @@ to_post_cache = ''
 username_to_role_pm_id = dict() # Example: username_to_role_pm_id["zugzwang"] == 9145
 # usernames here are all lowercase
 # This dict is filled out by give_role_pm
+wolfchat_topic_id = -1 # If config.is_turbo is True, a wolfchat PM will be created for nightkill submission.
 topic_id_to_last_post_accessed: dict[str, int] = dict()
 
 previous_post_time = time.time()
@@ -45,8 +46,8 @@ def load_turbo_pm_ids() -> dict:
             return json.load(turbo_pm_file)
         
 def save_turbo_pm_ids() -> None:
-    turbo_json_file = open(config.turbo_pm_json_path, 'w')
-    json.dump(turbo_pm_ids, turbo_json_file)
+    with open(config.turbo_pm_json_path, 'w') as turbo_json_file:
+        json.dump(turbo_pm_ids, turbo_json_file)
 
 turbo_pm_ids: dict = load_turbo_pm_ids()
 
@@ -240,7 +241,7 @@ async def get_new_posts_with_pings(ignore_return=False, accept_private_messages=
     return result
 
 
-def send_message(message: str, username: str, priority=0) -> bool:
+def send_message(message: str, username: str, priority=0, copy_to_wolfchat=False) -> bool:
     """
     Sends a message in the PM of the player specified. Returns True if the message was successfully sent.
 
@@ -251,6 +252,8 @@ def send_message(message: str, username: str, priority=0) -> bool:
     if topic_id_for_this_user == -1:
         return False
     create_post(message, topic_id_for_this_user, priority=priority)
+    if copy_to_wolfchat and wolfchat_topic_id != -1:
+        create_post(message, wolfchat_topic_id, priority=priority)
     return True
 
 def create_post(string_to_post: str, topic_id_parameter: int | str = -1, priority=0):
@@ -324,12 +327,13 @@ def resolve_substring_alias(voted_player: str, playerlist: list[str], for_voteco
         return NOT_VOTING
     if voted_player in NO_EXE_ALIASES and for_votecount:
         return NO_EXE
-    num_matched = 0
-    result = NOT_VOTING
     for player in playerlist:
         if voted_player.lower() == player.lower():
             return player
-        elif player.lower().find(voted_player.lower()) != -1:
+    num_matched = 0
+    result = NOT_VOTING
+    for player in playerlist:
+        if player.lower().find(voted_player.lower()) != -1:
             if for_votecount and config.resolve_like_vc_plugin:
                 return player
             num_matched += 1
@@ -785,7 +789,29 @@ def get_turbo_pm_id(player: str) -> int | str:
     global turbo_pm_ids
     return turbo_pm_ids.get(player.lower(), -1)
 
-async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=None, teammates=None, is_turbo=False):
+async def make_wolfchat_pm(wolfteam: list[str]):
+    global wolfchat_topic_id
+    if config.is_turbo:
+        assert config.setup_object is not None
+        pm_name = f"{config.setup_object.game_name} Turbo Wolfchat"
+        full_pm = "# Wolfchat\n"
+        full_pm += "This is the wolfchat for this turbo. Use /nightkill [player] at night to submit your" \
+                    " nightkill."
+        data = {
+            "title" : pm_name,
+            "raw" : full_pm,
+            "target_recipients" : ','.join(wolfteam + config.host_usernames),
+            "archetype" : "private_message",
+        }
+        result_of_api_call = await do_api_call(lambda : fluent_discourse_client.posts.json.post(data), ignore_return=False)
+        assert type(result_of_api_call) == dict
+        wolfchat_topic_id = int(result_of_api_call["topic_id"])
+        await asyncio.sleep(2)
+    else:
+        print("WARNING: Called make_wolfchat_pm with config.is_turbo == False. This shouldn't be done. PM creation cancelled.")
+
+
+async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=None, teammates=None):
     """
     Note: The provided role_pm should not have "You are..." at the top, nor should it
     be surrounded by quote tags. This function will take care of that.
@@ -794,13 +820,7 @@ async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=
 
     All teammates in teammates will be listed below Discord links.
 
-    If is_turbo is True, the role PM will be given in a permanent turbo PM, should one exist. This is to speed up
-    game start speeds.
     """
-    if is_turbo and not os.path.exists(config.turbo_pm_json_path):
-        turbo_json_file = open(config.turbo_pm_json_path, 'w')
-        turbo_json_file.close()
-
     discord_links = [] if discord_links is None else discord_links
     teammates = [] if teammates is None else teammates
 
@@ -818,33 +838,26 @@ async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=
         for teammate in teammates:
             full_pm += f"{teammate} \n"
 
-    if is_turbo:
-        pm_id = get_turbo_pm_id(player)
-        if pm_id != -1:
-            create_post(full_pm, topic_id_parameter=pm_id)
-    if not is_turbo or pm_id == -1:
-        pm_name = f"{game_name} Rolecard - {player}" if not is_turbo else f"Turbo Rolecard - {player}"
-        data = {
-            "title" : pm_name,
-            "raw" : full_pm,
-            "target_recipients" : ','.join([player] + config.host_usernames),
-            "archetype" : "private_message",
-        }
-        await do_api_call(lambda : fluent_discourse_client.posts.json.post(data), ignore_return=True)
-
-
-    await asyncio.sleep(5)
-    pm_id = await get_id_of_most_recently_sent_pm_with_specified_name(pm_name)
-    if is_turbo:
-        turbo_pm_ids[player.lower()] = pm_id
+    pm_name = f"{game_name} Rolecard - {player}"
+    data = {
+        "title" : pm_name,
+        "raw" : full_pm,
+        "target_recipients" : ','.join([player] + config.host_usernames),
+        "archetype" : "private_message",
+    }
+    result_of_api_call = await do_api_call(lambda : fluent_discourse_client.posts.json.post(data), ignore_return=False)
+    assert type(result_of_api_call) == dict
+    pm_id = int(result_of_api_call["topic_id"])
     print(f"ID for this PM: {pm_id}")
     username_to_role_pm_id[player.lower()] = pm_id
+    await asyncio.sleep(2)
     
-    await asyncio.sleep(11)
 
 
 class TopicNotFoundException(Exception):
     pass
+
+
 
 async def get_id_of_most_recently_sent_pm_with_specified_name(name: str):
     """
@@ -881,6 +894,8 @@ async def set_timer(time_string: str, close: bool):
 def topic_is_pm(topic_number_parameter: str | int, username: str):
     return int(topic_number_parameter) == int(username_to_role_pm_id[username.lower()])
 
+def topic_is_wolfchat(topic_number_parameter: str | int):
+    return int(topic_number_parameter) == int(wolfchat_topic_id)
 
 def topic_is_main_thread(topic_number_parameter: str | int):
     return config.topic_id == int(topic_number_parameter)

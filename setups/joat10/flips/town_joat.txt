@@ -1,0 +1,10 @@
+# [color=00ff00] Town JOAT [/color]
+
+You have access to the following three 1-shot night actions during the game:
+- Cop: /cop [player] to learn their alignment
+- Doctor: /protect [player] to prevent them from dying to night
+- Vigilante: /shoot [player] to kill target player
+
+Only one action can be used each night (in other words, these actions cannot be multitasked).
+
+Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.

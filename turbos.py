@@ -20,16 +20,19 @@ import setup
 turbo_task: asyncio.Task | None = None
 posting_queue_task:  asyncio.Task | None = None
 
-playerlist: list[str] = []
-day_length_minutes = 10
-night_length_minutes = 3
-topic_id = 9145
+playerlist: list[str] = ['Mittens','wrongboy','zug_alt_1','Zug','Eigenalt','Eigenzug','joycat','zug_alt_2','secret_cookie_thread','Zugzwang'] # TODO: change back to empty
+permission_to_use_manyadd = ["Zugzwang"]
+MAX_TURBO_DAY_LENGTH = 15 # 
+MAX_TURBO_NIGHT_LENGTH = 10
+day_length_minutes = 2
+night_length_minutes = 5
+topic_id = 9139
 
-setup_object = setup.get_setup("mountainous3")
+setup_object = setup.get_setup("joat10")
 assert setup_object is not None
 
 ALLOWED_SETUPS = setup.list_available_setups()
-ALLOWED_TOPIC_IDS = [9524, 9145]
+ALLOWED_TOPIC_IDS = [9524, 9145, 9139]
 TURBO_HOST_ACCOUNTS = ["Zwischenzug"]
 
 async def do_turbos():
@@ -55,8 +58,10 @@ def start_game():
     def inner_func(discard_1, discard_2, discard_3, post: p.Post):
         global playerlist
         assert setup_object is not None
-        if len(playerlist) != setup_object.playercount:
+        if len(playerlist) < setup_object.playercount:
             fol_interface.create_post(f"The game cannot be started, because it is not full.", topic_id_parameter=post.topicNumber)
+        elif len(playerlist) > setup_object.playercount:
+            fol_interface.create_post(f"There are too many players to start the game. Either a larger setup must be chosen, or players must leave.", topic_id_parameter=post.topicNumber)
         else:
             fol_interface.create_post(f"Starting game.", topic_id_parameter=post.topicNumber)
             assert turbo_task is not None
@@ -78,6 +83,58 @@ def join_game():
             playerlist.append(post.poster)
     return ability.Action(inner_func)
 
+def force_join_game():
+    async def inner_func(discard_1, discard_2, discard_3, target_user: str, post: p.Post):
+        assert setup_object is not None
+        global playerlist
+        if target_user.lower() in [player.lower() for player in playerlist]:
+            fol_interface.create_post(f"{target_user} is already in the game!", topic_id_parameter=post.topicNumber)
+        elif len(playerlist) == setup_object.playercount:
+            fol_interface.create_post(f"The game is already full!", topic_id_parameter=post.topicNumber)
+        else:
+            corrected_capitalization, success = await fol_interface.correct_capilatization_in_discourse_username(username=target_user)
+            if success:
+                fol_interface.create_post(f"{corrected_capitalization} has been added to the game.", topic_id_parameter=post.topicNumber)
+                playerlist.append(corrected_capitalization)
+            else:
+                fol_interface.create_post(f"{target_user} does not appear to exist. Is their name mispelled?", topic_id_parameter=post.topicNumber)
+    return ability.Action(inner_func)
+
+def force_quit_game():
+    async def inner_func(discard_1, discard_2, discard_3, target_user: str, post: p.Post):
+        assert setup_object is not None
+        global playerlist
+        if target_user.lower() in [player.lower() for player in playerlist]:
+            fol_interface.create_post(f"{target_user} has been removed from the game.", topic_id_parameter=post.topicNumber)
+            for num in range(len(playerlist)):
+                if playerlist[num].lower() == target_user.lower():
+                    playerlist.pop(num)
+                    break
+        else:
+            fol_interface.create_post(f"{target_user} is not in the game.", topic_id_parameter=post.topicNumber)
+    return ability.Action(inner_func)
+
+def force_join_game_multiple():
+    async def inner_func(discard_1, discard_2, discard_3, target_users: str, post: p.Post):
+        assert setup_object is not None
+        global playerlist
+        if post.poster not in permission_to_use_manyadd:
+            return
+        targets = target_users.split(",")
+        for target in targets:
+            if target.lower() in [player.lower() for player in playerlist]:
+                fol_interface.create_post(f"{target} is already in the game!", topic_id_parameter=post.topicNumber)
+            elif len(playerlist) == setup_object.playercount:
+                fol_interface.create_post(f"The game is already full!", topic_id_parameter=post.topicNumber)
+            else:
+                corrected_capitalization, success = await fol_interface.correct_capilatization_in_discourse_username(username=target)
+                if success:
+                    fol_interface.create_post(f"{corrected_capitalization} has been added to the game.", topic_id_parameter=post.topicNumber)
+                    playerlist.append(corrected_capitalization)
+                else:
+                    fol_interface.create_post(f"{target} does not appear to exist. Is their name mispelled?", topic_id_parameter=post.topicNumber)
+    return ability.Action(inner_func)
+
 def leave_game():
     def inner_func(discard_1, discard_2, discard_3, post: p.Post):
         global playerlist
@@ -97,21 +154,21 @@ def modify_game_settings():
         if setting_to_change.lower() == "day_length":
             try:
                 value_int = int(value)
-                assert value_int > 1
+                if value_int < 2 or value_int > MAX_TURBO_DAY_LENGTH:
+                    raise ValueError()
                 fol_interface.create_post(f"Days are now {value_int} minutes long.", topic_id_parameter=post.topicNumber)
                 day_length_minutes = value_int
-            except ValueError | AssertionError:
-                fol_interface.create_post(f"{value} is not an integer greater than 1.", topic_id_parameter=post.topicNumber)
+            except ValueError:
+                fol_interface.create_post(f"{value} is not an integer in the range 2 to {MAX_TURBO_DAY_LENGTH} (inclusive).", topic_id_parameter=post.topicNumber)
         elif setting_to_change.lower() == "night_length":
             try:
                 value_int = int(value)
-                assert value_int > 1
+                if value_int < 2 or value_int > MAX_TURBO_NIGHT_LENGTH:
+                    raise ValueError()
                 fol_interface.create_post(f"Nights are now {value_int} minutes long.", topic_id_parameter=post.topicNumber)
                 night_length_minutes = value_int
             except ValueError:
-                fol_interface.create_post(f"{value} is not an integer.", topic_id_parameter=post.topicNumber)
-            except AssertionError:
-                fol_interface.create_post(f"{value} is not an integer greater than 1.", topic_id_parameter=post.topicNumber)
+                fol_interface.create_post(f"{value} is not an integer in the range 2 to {MAX_TURBO_NIGHT_LENGTH} (inclusive).", topic_id_parameter=post.topicNumber)
         elif setting_to_change.lower() == "topic_id":
             try:
                 value_int = int(value)
@@ -175,10 +232,25 @@ def get_turbo_out_of_game_abilities() -> list["ability.Ability"]:
         syntax_parser=syn.SyntaxParser(command_name="in", parameter_list=[]),
         use_action_instant=join_game(),
     )
+    force_signup_ability = make_simplified_ability(
+        ability_name="Add to Game",
+        syntax_parser=syn.SyntaxParser(command_name="add", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING]),
+        use_action_instant=force_join_game(),
+    )
+    force_many_signup_ability = make_simplified_ability(
+        ability_name="Add Many to Game",
+        syntax_parser=syn.SyntaxParser(command_name="manyadd", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING]),
+        use_action_instant=force_join_game_multiple()
+    )
     quit_ability = make_simplified_ability(
         ability_name="Leave Game",
         syntax_parser=syn.SyntaxParser(command_name="out", parameter_list=[]),
         use_action_instant=leave_game(),
+    )
+    force_quit_ability = make_simplified_ability(
+        ability_name="Remove from Game",
+        syntax_parser=syn.SyntaxParser(command_name="remove", parameter_list=[syn.SYNTAX_PARSER_NO_SPACE_STRING]),
+        use_action_instant=force_quit_game()
     )
     start_ability = make_simplified_ability(
         ability_name="Start Game",
@@ -196,7 +268,7 @@ def get_turbo_out_of_game_abilities() -> list["ability.Ability"]:
         use_action_instant=display_current_settings()
     )
 
-    return [help_ability, signup_ability, quit_ability, start_ability, modify_ability, display_ability]
+    return [help_ability, signup_ability, force_signup_ability, force_many_signup_ability, quit_ability, force_quit_ability, start_ability, modify_ability, display_ability]
 
 async def process_turbo_post(post: p.Post, out_of_game_abilities: list[ability.Ability]):
     for ability in out_of_game_abilities:        
@@ -235,7 +307,8 @@ if __name__ == "__main__":
 
         # Setting config to chosen settings
         assert setup_object is not None
-
+        
+        config.setup_object = setup_object
         config.game_name = setup_object.game_name
         config.allow_no_exe = setup_object.allow_no_exe
         config.do_votecounts = setup_object.do_votecounts
@@ -255,6 +328,12 @@ if __name__ == "__main__":
 
         config.original_host_usernames = TURBO_HOST_ACCOUNTS
         config.host_usernames = list(map(lambda x : x.lower(), TURBO_HOST_ACCOUNTS))
+        config.is_turbo = True
+
+        config.game_start_time = '' # TODO: Make turbos not lock their times to the nearest minute, since this 
+                                    # makes the first phase the wrong length by up to a minute
+
+        print(f"Config modified appropriately for setup {setup_object.game_name}.")
         
         try:
             asyncio.run(main.start_all_components())

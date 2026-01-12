@@ -15,6 +15,7 @@ import constants as c
 import post as p
 import syntax_parser_standard as syn
 import game_state
+import config
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -185,6 +186,7 @@ class Ability:
                 print(e)
             return
         
+
         assert player is not None
         if not self.ignore_action_deadline and not action_submission_open:
             print("Action submission is not open, and this ability does not ignore the action deadline.")
@@ -288,9 +290,12 @@ class AbilityRestrictions:
 
     def verify(self, player_using_action: pl.Player, ability_being_used: 'Ability', gamestate: game_state.GameState,
                formal_parameters_of_action: list, actual_parameters_of_action: list) -> tuple[bool, str]:
+        
+        # Shot count check:
         if self.shot_count != -1 and ability_being_used.use_count >= self.shot_count:
             return (False, f'This ability is {self.shot_count}-shot and has been used {ability_being_used.use_count} times.')
         
+        # Cycling check:
         for ability in player_using_action.abilities:
             shared_cycles = set(ability_being_used.ability_restrictions.cycling).intersection(set(ability.ability_restrictions.cycling))
             if len(shared_cycles) != 0 and ability_being_used.use_count > ability.use_count:
@@ -298,7 +303,20 @@ class AbilityRestrictions:
                         f" Therefore, you cannot use {ability_being_used.ability_name} now.")
 
         # TODO: cooldown
-        # TODO: multitask_cost
+
+        # TODO: multitask_cost check:
+        for cost_key in self.multitask_cost:
+            cost_of_this_ability = self.multitask_cost[cost_key]
+            cost_of_actions_used_so_far = player_using_action.actions_costs.get(cost_key, 0) # Cost of instant actions used so far this phase
+            total_cost_for_this_key = 0
+            for unresolved_action in player_using_action.unresolved_actions:
+                if unresolved_action.ability_id != ability_being_used.id:
+                    total_cost_for_this_key += all_abilities[unresolved_action.ability_id].ability_restrictions.multitask_cost.get(cost_key, 0)
+            if total_cost_for_this_key + cost_of_this_ability > 1:
+                return (False, f"This ability cannot be used now, due to the \"{cost_key}\" multitask \
+                        restriction. {'You can use /reset to withdraw the non-instant actions you have submitted this phase, allowing you to then submit this action. ' if cost_of_actions_used_so_far + cost_of_this_ability <= 1 else ''}")
+
+        # Loyal / Disloyal check:
         for i in range(len(formal_parameters_of_action)):
             if formal_parameters_of_action[i] == syn.SYNTAX_PARSER_PLAYERNAME:
                 targeted_player: pl.Player | None = actual_parameters_of_action[i]
@@ -310,20 +328,25 @@ class AbilityRestrictions:
                         return (False, f"This ability is disloyal, but you are targeting someone of your alignment.")
                     if (player_using_action == targeted_player):
                         return (False, f"You are not allowed to self-target with this ability.")
-                    
+        
+        # Day / Night / Phase count check:
         if self.day_required and not gamestate.is_day:
             return (False, f"This ability can only be used during the day.")
         if self.night_required and gamestate.is_day:
             return (False, f"This ability can only be used during the night.")
         if not self.check_if_cycle_is_allowed(gamestate.phase_count):
             return (False, f'This ability cannot be used during cycle {gamestate.phase_count}.')
+        
+        # Passed all checks:
         return (True, '')
     
 def is_submission_location_correct(submission_location: int, topic_number_parameter: str | int, username: str):
     if int(submission_location) == c.IN_THREAD:
         return fol_interface.topic_is_main_thread(topic_number_parameter)
     elif int(submission_location) == c.IN_PM:
-        return fol_interface.topic_is_pm(topic_number_parameter, username=username)
+        return fol_interface.topic_is_pm(topic_number_parameter, username=username) or fol_interface.topic_is_wolfchat(topic_number_parameter)
+    elif int(submission_location) == c.IN_WOLFCHAT:
+        return fol_interface.topic_is_wolfchat(topic_number_parameter)
     return False
 
 
