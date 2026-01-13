@@ -84,6 +84,7 @@ def get_nightkill_ability():
         is_instant=True,
         submission_location=c.IN_WOLFCHAT,
         ignore_action_deadline=True,
+        force_send_feedback_in_submission_location=True,
         ability_restrictions=a.AbilityRestrictions(night_required=True, day_required=False, disloyal=True,
                                                    allowed_cycles=lambda x : x >= 0),
         ability_modifiers=a.AbilityModifiers(damage_amount=1)

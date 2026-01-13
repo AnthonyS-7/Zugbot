@@ -23,6 +23,10 @@ if TYPE_CHECKING:
     P = ParamSpec("P")
     Action_Function = Callable[Concatenate[pl.Player, game_state.GameState, P], typing.Any]
 
+
+class InvalidAbilityParametersException(Exception):
+    pass
+
 next_id = 0
 
 def get_next_id() -> int:
@@ -128,7 +132,8 @@ class Ability:
                  ability_priority: float = 0,
                  willpower_required: float | None = None,
                  action_types: list[str] = [c.FALSE_ACTION],
-                 ignore_action_deadline=False) -> None:
+                 ignore_action_deadline=False,
+                 force_send_feedback_in_submission_location=False) -> None:
         """
         TODO: update ability docs
         """
@@ -154,6 +159,13 @@ class Ability:
 
         self.id = get_next_id()
         all_abilities.append(self)
+
+        self.force_send_feedback_in_submission_location = force_send_feedback_in_submission_location
+        if force_send_feedback_in_submission_location and submission_location == c.IN_THREAD:
+            raise InvalidAbilityParametersException("Forcing feedback to be sent in the submission location is not allowed unless the submission location is the role PM or wolfchat.")
+        if submission_location == c.IN_PM:
+            self.force_send_feedback_in_submission_location = False # The default behavior is to send feedback there anyway
+
 
     async def use_ability_as_host(self, post: p.Post, gamestate: game_state.GameState):
         try:
@@ -211,11 +223,17 @@ class Ability:
         success, error_message = self.ability_restrictions.verify(player, self, gamestate,
                                                         self.syntax_parser.parameter_list, parameters)
         if not success:
-            fol_interface.send_message(error_message, player.username, priority=5)
+            if not self.force_send_feedback_in_submission_location:
+                fol_interface.send_message(error_message, player.username, priority=5)
+            else:
+                fol_interface.create_post(string_to_post=error_message, topic_id_parameter=post.topicNumber, priority=5)
             print(f"This ability failed verification with message: {error_message}")
             return
         print("Ability passed verification!")
-        fol_interface.send_message("Action processed.", player.username, priority=5)
+        if not self.force_send_feedback_in_submission_location:
+            fol_interface.send_message("Action processed.", player.username, priority=5)
+        else:
+            fol_interface.create_post(string_to_post="Action processed.", topic_id_parameter=post.topicNumber, priority=5)
 
         if self.is_instant and (self.willpower_required is None or player.willpower >= self.willpower_required):
             parameters = process_redirects(parameters, self, no_redirects=is_host_post)

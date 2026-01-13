@@ -16,7 +16,7 @@ def generate_rolelist() -> list[Callable[[str], "player.Player"]]:
 
 def get_setup():
     return setup.Setup(game_name="desp8",
-                allow_no_exe=False,
+                allow_no_exe=True,
                 playercount=8,
                 get_rolelist=generate_rolelist
         )

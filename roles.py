@@ -94,6 +94,7 @@ The following parts of roles are complex enough to need standards:
 """
 
 
+import ability
 import player
 #import game_state
 import fol_interface
@@ -108,7 +109,7 @@ import re
 # from roles_folder.doctor import make_town_doctor, make_mafia_doctor
 from roles_folder.roles_exceptions import ActionException, ParsingException
 
-from role_standards import syntax_parser_standard as syn
+import syntax_parser_standard as syn
 from role_standards import can_use_now_standard as can
 from role_standards import verify_standard as ver
 
@@ -147,7 +148,7 @@ async def daykill_player(player_doing_kill: "player.Player", gamestate: "game_st
 
 def make_day_vig(username: str) -> "player.Player":
     result = player.Player(username, c.TOWN, "town_day_vig.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             ability_name = "Day vig",
             syntax_parser=syn.SyntaxParser("shoot", [syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,
@@ -176,7 +177,7 @@ def get_cop_result(player_doing_action: str, gamestate: 'game_state.GameState', 
 
 def make_town_cop(username: str) -> "player.Player":
     result = player.Player(username, c.TOWN, "town_cop.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             ability_name = "Cop",
             syntax_parser=syn.SyntaxParser("investigate", [syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,
@@ -201,7 +202,7 @@ def make_town_joat(username: str) -> "player.Player":
     The JOAT from joat10.
     """
     result = player.Player(username, c.TOWN, "town_joat_1.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             ability_name = "JOAT",
             syntax_parser=syn.SyntaxParser("act", [syn.SYNTAX_PARSER_NO_SPACE_STRING, syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,
@@ -253,7 +254,7 @@ def make_mafia_goon(username: str) -> "player.Player":
 
 def make_modposter(username: str, alignment: int) -> 'player.Player':
     result = player.Player(username, alignment, "town_modposter.txt" if alignment == c.TOWN else "mafia_modposter.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             ability_name="Modpost",
             syntax_parser=modpost_syntax_parser,
             submission_location=c.IN_PM,
@@ -302,7 +303,7 @@ async def use_popcorn_gun(player_object: 'player.Player',
 
 def town_popcorn_take_damage(self: 'player.Player', damage: float):
     if self.health == 2:
-        gun_ability = player.Ability(
+        gun_ability = ability.Ability(
             ability_name="Popcorn gun",
             syntax_parser=syn.SyntaxParser(command_name="shoot", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_THREAD,
@@ -338,7 +339,7 @@ def choose_gunholder(player_object: 'player.Player',
 
 def make_mafia_popcorn(username: str) -> 'player.Player':
     result = player.Player(username, c.MAFIA, "mafia_popcorn.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             ability_name="Choose gunholder",
             syntax_parser=syn.SyntaxParser(command_name="choose", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME]),
             submission_location=c.IN_PM,

@@ -18,7 +18,6 @@
 
 
 #  TODO for turbo implementation
-- joat10 (high prio)
 - popcorn
 - cop9
 - godfather9
@@ -27,13 +26,9 @@
 
 roles required:
 - popcorn roles
-- joat (1x cop, 1x doctor, 1x vig)
-- inventor who gives a desperado item
 - inventor who gives a bomb
+- miller / godfather
 - PR killer
-
-role modifiers required:
-- multitask restrictions? depending on joat implementation
 
 other reqs:
 - ITAs
@@ -45,12 +40,16 @@ Things almost finished:
 Things finished but needs testing:
 - Vigilante
 - Innocent child
+- joat (1x cop, 1x doctor, 1x vig)
+   - multitask restrictions included
+- inventor who gives a desperado item
+- Wolfchat (and factional kill submission) on the forum
+- turbos.py updates
 - Shot restrictions (i.e. 1-shot)
 - cycle restrictions
 - inno7, inno4
 - desp8
-- Wolfchat (and factional kill submission) on the forum
-- turbos.py updates
+- joat10
 
 
 

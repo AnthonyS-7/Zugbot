@@ -15,7 +15,7 @@ def generate_rolelist() -> list[Callable[[str], "player.Player"]]:
 
 def get_setup():
     return setup.Setup(game_name="inno7",
-                allow_no_exe=False,
+                allow_no_exe=True,
                 first_phase_is_day=False,
                 first_phase_count=0,
                 playercount=7,

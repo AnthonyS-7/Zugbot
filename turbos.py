@@ -20,19 +20,20 @@ import setup
 turbo_task: asyncio.Task | None = None
 posting_queue_task:  asyncio.Task | None = None
 
-playerlist: list[str] = ['Mittens','wrongboy','zug_alt_1','Zug','Eigenalt','Eigenzug','joycat','zug_alt_2','secret_cookie_thread','Zugzwang'] # TODO: change back to empty
-permission_to_use_manyadd = ["Zugzwang"]
-MAX_TURBO_DAY_LENGTH = 15 # 
+# 'Mittens','wrongboy','zug_alt_1','Zug','zug_alt_2','secret_cookie_thread','Eigenalt','Eigenzug','joycat','Zugzwang' for testing
+playerlist: list[str] = [] 
+permission_to_use_manyadd = ["Zugzwang"] 
+MAX_TURBO_DAY_LENGTH = 15
 MAX_TURBO_NIGHT_LENGTH = 10
-day_length_minutes = 2
-night_length_minutes = 5
-topic_id = 9139
+day_length_minutes = 10
+night_length_minutes = 3
+topic_id = 9524
 
 setup_object = setup.get_setup("joat10")
 assert setup_object is not None
 
 ALLOWED_SETUPS = setup.list_available_setups()
-ALLOWED_TOPIC_IDS = [9524, 9145, 9139]
+ALLOWED_TOPIC_IDS = [9524]
 TURBO_HOST_ACCOUNTS = ["Zwischenzug"]
 
 async def do_turbos():

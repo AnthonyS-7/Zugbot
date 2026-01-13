@@ -241,7 +241,7 @@ async def get_new_posts_with_pings(ignore_return=False, accept_private_messages=
     return result
 
 
-def send_message(message: str, username: str, priority=0, copy_to_wolfchat=False) -> bool:
+def send_message(message: str, username: str, priority=0) -> bool:
     """
     Sends a message in the PM of the player specified. Returns True if the message was successfully sent.
 
@@ -252,8 +252,6 @@ def send_message(message: str, username: str, priority=0, copy_to_wolfchat=False
     if topic_id_for_this_user == -1:
         return False
     create_post(message, topic_id_for_this_user, priority=priority)
-    if copy_to_wolfchat and wolfchat_topic_id != -1:
-        create_post(message, wolfchat_topic_id, priority=priority)
     return True
 
 def create_post(string_to_post: str, topic_id_parameter: int | str = -1, priority=0):

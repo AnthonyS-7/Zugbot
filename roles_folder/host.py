@@ -34,7 +34,7 @@ def substitution_syntax_parser(post: p.Post):
     new_player = target.group(2)
     return [current_player, new_player]
 
-async def do_substitution(player_object: 'player.Player | None', gamestate: "game_state.GameState", current_player: 'player.Player', new_player: str):    
+async def do_substitution(player_object: 'player.Player | None', gamestate: "game_state.GameState", ability, current_player: 'player.Player', new_player: str):    
     role_pm = modbot.get_flip(current_player.username, gamestate)
     current_player_username = current_player.username # needed because current_player.username gets changed later
     new_player, successful_name_resolution = await fol_interface.correct_capilatization_in_discourse_username(new_player)
@@ -72,7 +72,7 @@ async def do_substitution(player_object: 'player.Player | None', gamestate: "gam
 
     gamestate.print_playerlists()
 
-async def do_modkill(player_object: 'None | player.Player', gamestate: "game_state.GameState", modkilled_player: 'player.Player'):
+async def do_modkill(player_object: 'None | player.Player', gamestate: "game_state.GameState", ability, modkilled_player: 'player.Player'):
     global possible_modkill_name
     if possible_modkill_name.lower() != modkilled_player.username.lower():
         possible_modkill_name = modkilled_player.username
@@ -101,37 +101,37 @@ do_modkill_ability = ability.Ability(
     is_instant=True
 )
 
-def reset_nominations(host_account, gamestate: game_state.GameState):
+def reset_nominations(host_account, gamestate: game_state.GameState, ability):
     gamestate.reset_nominations()
     fol_interface.create_post("Nominations have been reset!")
 
-def remove_nomination_power(host_account, gamestate: game_state.GameState, target_player: 'player.Player'):
+def remove_nomination_power(host_account, gamestate: game_state.GameState, ability, target_player: 'player.Player'):
     target_player.can_nominate = False # type: ignore
     fol_interface.create_post(f"{target_player.username} can no longer nominate.")
 
-def restore_nomination_power(host_account, gamestate: game_state.GameState, target_player: 'player.Player'):
+def restore_nomination_power(host_account, gamestate: game_state.GameState, ability, target_player: 'player.Player'):
     target_player.can_nominate = True # type: ignore
     fol_interface.create_post(f"{target_player.username} can once again nominate.")
 
-def set_nomination(host_account, gamestate: game_state.GameState, nominating_player: 'player.Player', nominated_player: 'player.Player'):
+def set_nomination(host_account, gamestate: game_state.GameState, ability, nominating_player: 'player.Player', nominated_player: 'player.Player'):
     nominating_player.target_of_nomination = nominated_player # type: ignore
     nominating_player.nomination_order = gamestate.nomination_counter #type: ignore
     gamestate.nomination_counter += 1
     fol_interface.create_post(f"{nominating_player.username} has nominated {nominated_player.username}.")
 
-def open_nominations(host_account, gamestate: game_state.GameState):
+def open_nominations(host_account, gamestate: game_state.GameState, ability):
     gamestate.nominations_open = True
     fol_interface.create_post("Nominations are now open.")
 
-def close_nominations(host_account, gamestate: game_state.GameState):
+def close_nominations(host_account, gamestate: game_state.GameState, ability):
     gamestate.nominations_open = False
     fol_interface.create_post("Nominations are now closed.")
 
-def disable_all_abilities(host_account, gamestate: game_state.GameState):
+def disable_all_abilities(host_account, gamestate: game_state.GameState, ability):
     modbot.all_abilities_are_disabled = True
     fol_interface.create_post("Abilities have been disabled.")
 
-def reenable_abilities(host_account, gamestate: game_state.GameState):
+def reenable_abilities(host_account, gamestate: game_state.GameState, ability):
     modbot.all_abilities_are_disabled = False
     fol_interface.create_post("Abilities have been enabled.")
 
