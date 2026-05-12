@@ -170,20 +170,20 @@ def MAKE_MAFIA_GOON(username: str, flip_path: str) -> "player.Player":
     result = player.Player(username, c.MAFIA, flip_path, abilities=None)
     return result
 
-def MAKE_TOWN_COP(username: str, flip_path: str, invest_strength=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
+def MAKE_TOWN_COP(username: str, flip_path: str, invest_strength=1.0, shot_count=-1, target_focus=0) -> 'player.Player':
     import player
     result = player.Player(username, c.TOWN, flip_path, abilities=[
         COP_ABILITY(invest_strength=invest_strength, shot_count=shot_count, target_focus=target_focus)])
     return result
 
-def MAKE_TOWN_VIG(username: str, flip_path: str, damage_amount=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
+def MAKE_TOWN_VIG(username: str, flip_path: str, damage_amount=100, shot_count=-1, target_focus=0) -> 'player.Player':
     import player
     result = player.Player(username, c.TOWN, flip_path, abilities=
                            [VIG_ABILITY(damage_amount=damage_amount, shot_count=shot_count, target_focus=target_focus)]
                            )
     return result
 
-def MAKE_MAFIA_VIG(username: str, flip_path: str, damage_amount=1.0, shot_count=-1, target_focus=0.0) -> 'player.Player':
+def MAKE_MAFIA_VIG(username: str, flip_path: str, damage_amount=100, shot_count=-1, target_focus=0) -> 'player.Player':
     import player
     result = player.Player(username, c.MAFIA, flip_path, abilities=
                            [VIG_ABILITY(damage_amount=damage_amount, shot_count=shot_count, target_focus=target_focus)]
