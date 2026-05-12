@@ -18,7 +18,7 @@ playerlist_usernames:
 topic_id: 9145 # The topic ID of the game thread
 
 mafia_discord_link: ''
-rand_roles: false # Whether to rand roles. Set to true in games! This option is here for easier debugging.
+rand_roles: true # Whether to rand roles. Set to true in games! This option is here for easier debugging.
 
 day_length: 4 # In minutes
 night_length: 3 # In minutes
@@ -26,7 +26,17 @@ action_deadline: 1 # Actions can no longer be submitted this many minutes before
 
 setup_name: 'mountainous3' # Must exactly match the name in the setups folder
 
+include_itas: false # If true, ITA windows will exist.
+ita_windows: # Each number represents the number of minutes past SOD.
+    - start: 60
+      end: 120
+    - start: 300
+      end: 360
+
 # Most users can safely ignore everything below this line.
+
+send_messages_to_hosting_discord: true # True if debug messages should be sent to a host discord
+hosting_discord_channel_id_for_output: 1503775486889820282 # The ID of the discord channel to output debug messages to
 
 resolve_like_vc_plugin: true # Should be set to true for most use cases.
 

@@ -49,6 +49,12 @@ with open('config.yaml', 'r') as config_file:
 
     crash_on_exception: bool = config_dict['crash_on_exception']
 
+    include_itas: bool = config_dict['include_itas']
+    ita_windows: list[dict[str, int]] = config_dict['ita_windows']
+
+    send_messages_to_hosting_discord: bool = config_dict['send_messages_to_hosting_discord']
+    hosting_discord_channel_id_for_output: int = config_dict['hosting_discord_channel_id_for_output']
+
     # Below this line is field from the setup loaded here
     game_name = setup_object.game_name
     allow_no_exe = setup_object.allow_no_exe

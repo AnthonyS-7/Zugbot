@@ -1,3 +1,4 @@
+import ability
 import player
 import game_state
 import fol_interface
@@ -36,7 +37,7 @@ def get_cop_result(player_doing_action: str, gamestate: game_state.GameState, ta
 
 def make_cop(username: str, alignment: int) -> player.Player:
     result = player.Player(username, alignment, "town_cop.txt" if alignment == player.TOWN else "mafia_cop.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             syntax_parser=rt.construct_syntax_parser("investigate"),
             submission_location=player.IN_PM,
             can_use_now=lambda playername, gamestate : not gamestate.is_day,

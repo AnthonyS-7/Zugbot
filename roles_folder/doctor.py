@@ -1,3 +1,4 @@
+import ability
 import player
 import game_state
 import fol_interface
@@ -35,7 +36,7 @@ def do_doctor_protection(player_doing_action: str, gamestate: game_state.GameSta
 
 def make_doctor(username: str, alignment: int) -> player.Player:
     result = player.Player(username, alignment, "town_doctor.txt" if alignment == player.TOWN else "mafia_doctor.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             syntax_parser=rt.construct_syntax_parser("protect"),
             submission_location=player.IN_PM,
             can_use_now=lambda playername, gamestate : not gamestate.is_day,

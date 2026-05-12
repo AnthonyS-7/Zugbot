@@ -58,7 +58,7 @@ def DOCTOR_ACTION() -> "ability.Action":
         target_player.receive_protection(ability.ability_modifiers)
     return ability.Action(doc_function)
 
-def DOCTOR_ABILITY(protection_level=1.0, shot_count=-1, target_focus=0.0, ) -> "ability.Ability":
+def DOCTOR_ABILITY(protection_level=100, shot_count=-1, target_focus=0, ) -> "ability.Ability":
     """
     Returns a doctor ability.
     """
@@ -83,7 +83,7 @@ def COP_ACTION() -> "ability.Action":
         fol_interface.send_message(f"You learn your target is {resulting_alignment.string_rep()}.", username=acting_player.username)
     return ability.Action(cop_function)
 
-def COP_ABILITY(invest_strength=1.0, shot_count=-1, target_focus=0.0) -> "ability.Ability":
+def COP_ABILITY(invest_strength=1.0, shot_count=-1, target_focus=0) -> "ability.Ability":
     """
     Returns a cop ability.
     """
@@ -106,7 +106,7 @@ def VIG_ACTION() -> "ability.Action":
         target_player.take_damage(ability.ability_modifiers)
     return ability.Action(vig_function)
 
-def VIG_ABILITY(damage_amount=1.0, shot_count=-1, target_focus=0.0) -> "ability.Ability":
+def VIG_ABILITY(damage_amount=100, shot_count=-1, target_focus=0) -> "ability.Ability":
     """
     Returns a vig ability.
     """

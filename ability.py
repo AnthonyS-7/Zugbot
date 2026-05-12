@@ -79,9 +79,9 @@ class AbilityModifiers:
     """
     def __init__(self,
                  invest_power=1.0,
-                 protection_level=0.0,
-                 damage_amount=0.0,
-                 target_focus=0.0, # TODO: should this be in here? unsure.
+                 protection_level=0,
+                 damage_amount=0,
+                 target_focus=0, # TODO: should this be in here? unsure.
                  ) -> None:
         self.invest_power = invest_power
         self.protection_level = protection_level
@@ -105,7 +105,7 @@ def process_redirects(action_parameters: list, ability: 'a.Ability', no_redirect
     result = action_parameters.copy()
     for index in range(len(result)):
         current_player: pl.Player = result[index]
-        current_focus = ability.ability_modifiers.target_focus
+        current_focus: int = ability.ability_modifiers.target_focus
         no_more_redirects = False
         while not no_more_redirects:
             try:
@@ -257,6 +257,7 @@ class AbilityRestrictions:
                  disloyal=False,
                  day_required=False,
                  night_required=True,
+                 ita_required=False,
                  allowed_cycles: list[int] | None | Callable[[int], bool] = None
                  ) -> None:
         """
@@ -299,6 +300,7 @@ class AbilityRestrictions:
         self.disloyal = disloyal
         self.day_required = day_required
         self.night_required = night_required
+        self.ita_required = ita_required
         if allowed_cycles is None:
             self.check_if_cycle_is_allowed: Callable[[int], bool] = lambda x : x >= 1
         elif type(allowed_cycles) == list:

@@ -1,3 +1,4 @@
+import ability
 import player
 import game_state
 import fol_interface
@@ -78,7 +79,7 @@ def joat_doc_player(player_doing_action: str, gamestate: game_state.GameState, t
 
 def make_town_joat_1(username: str) -> player.Player:
     result = player.Player(username, player.TOWN, "town_joat_1.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             syntax_parser=rt.construct_syntax_parser("investigate"),
             submission_location=player.IN_PM,
             can_use_now=lambda playername, gamestate : not gamestate.is_day,
@@ -86,7 +87,7 @@ def make_town_joat_1(username: str) -> player.Player:
             use_action_phase_end=joat_get_cop_result,
             ability_priority=-10
         ),
-        player.Ability(
+        ability.Ability(
             syntax_parser=rt.construct_syntax_parser("shoot"),
             submission_location=player.IN_PM,
             can_use_now=lambda playername, gamestate : not gamestate.is_day,
@@ -95,7 +96,7 @@ def make_town_joat_1(username: str) -> player.Player:
             ability_priority=-10
 
         ),
-        player.Ability(
+        ability.Ability(
             syntax_parser=rt.construct_syntax_parser("protect"),
             submission_location=player.IN_PM,
             can_use_now=lambda playername, gamestate : not gamestate.is_day,

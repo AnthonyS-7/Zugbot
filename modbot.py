@@ -1,4 +1,5 @@
 import fol_interface
+import discord_interface
 
 import player as p
 import post as post_class
@@ -108,7 +109,7 @@ def process_nightkill(nightkill_username: str, gamestate: game_state.GameState):
     """
     player_object = gamestate.get_player_object_living_players_only(nightkill_username)
     assert player_object is not None
-    player_object.take_damage(a.AbilityModifiers(damage_amount=1.0)) # TODO: allow modifiers for the factional??
+    player_object.take_damage(a.AbilityModifiers(damage_amount=100)) # TODO: allow modifiers for the factional??
 
 def process_elimination(eliminated_player_username: str, gamestate: game_state.GameState, was_tie: bool):
     flip = get_flip(eliminated_player_username, gamestate)
@@ -261,6 +262,8 @@ async def give_role_pms(playerlist: list[str], gamestate: game_state.GameState):
         await fol_interface.give_role_pm(player, flip, config.game_name, 
                                          discord_links=[config.mafia_discord_link] if player_is_mafia else [], 
                                          teammates=get_mafia_list(gamestate) if player_is_mafia else None)
+        await discord_interface.send_message_to_hosting_discord(f"Sent role PM for {player}.")
+        
         
 async def run_vc_bot():
     global posts_in_thread_at_last_vc

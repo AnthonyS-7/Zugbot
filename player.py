@@ -23,6 +23,7 @@ import constants as c
 import config
 import fol_interface
 
+import math
 
 # nomination info:
 # players have: can_nominate, target_of_nomination, nomination_order
@@ -94,7 +95,7 @@ class Redirection:
     """
     This is a struct-like to hold redirection-related effects on a player.
     """
-    def __init__(self, redirect_player: "Player", redirection_strength: float, focus_increase_on_redirection: float) -> None:
+    def __init__(self, redirect_player: "Player", redirection_strength: int, focus_increase_on_redirection: int) -> None:
         self.redirect_player = redirect_player
         self.redirection_strength = redirection_strength
         self.focus_increase_on_redirection = focus_increase_on_redirection
@@ -149,9 +150,9 @@ class Player:
         """
         self.username = username
         self.alignment = alignment
-        self.health = 1
+        self.health: int = 100
         self.rolecard_path = rolecard_path
-        self.protection = 0.0
+        self.protection: int = 0
         self.abilities = ([] if abilities is None else abilities) + get_default_abilities() \
                           + ([get_nightkill_ability()] if alignment == c.MAFIA else [])
         self.willpower = willpower
@@ -170,7 +171,7 @@ class Player:
                                                     # In other words, this is part of how multitasking (or the lack thereof)
                                                     # is handled.
         
-    def get_redirect(self, target_focus: float) -> 'Player':
+    def get_redirect(self, target_focus: int) -> 'Player':
         """
         Given target_focus, returns the player the action should target.
         """
@@ -178,7 +179,7 @@ class Player:
             return self
         return self.redirection.redirect_player
     
-    def get_redirect_focus_increase(self) -> float:
+    def get_redirect_focus_increase(self) -> int:
         return 0 if self.redirection is None else self.redirection.focus_increase_on_redirection
 
     def take_damage(self, modifiers: 'a.AbilityModifiers') -> bool:
@@ -189,16 +190,16 @@ class Player:
         if damage_amount <= self.protection:
             self.protection -= damage_amount
             return False
-        damage_amount = (damage_amount - self.protection) * self.passives.damage_multiplier
+        damage_amount = math.ceil( (damage_amount - self.protection) * self.passives.damage_multiplier )
         self.protection = 0
         self.health = max(0, self.health - damage_amount)
         return self.health == 0
 
     def receive_protection(self, modifiers: 'a.AbilityModifiers'):
-        self.protection += modifiers.protection_level * self.passives.protection_multiplier
+        self.protection += round( modifiers.protection_level * self.passives.protection_multiplier )
     
     def do_day_start_changes(self):
-        self.protection = 0.0
+        self.protection = 0
         self.actions_costs = dict()
 
     def do_night_start_changes(self):

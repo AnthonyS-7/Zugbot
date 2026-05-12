@@ -1,3 +1,4 @@
+import ability
 import player
 import game_state
 import fol_interface
@@ -18,7 +19,7 @@ def empty_function(*args):
 
 def make_suicide_bomber(username: str, alignment: int) -> player.Player:
     result = player.Player(username, alignment, "town_suicide_bomber.txt" if alignment == player.TOWN else "mafia_suicide_bomber.txt", abilities=[
-        player.Ability(
+        ability.Ability(
             syntax_parser=rt.construct_syntax_parser("bomb"),
             submission_location=player.IN_PM,
             can_use_now=lambda playername, gamestate : gamestate.is_day,

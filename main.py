@@ -50,6 +50,7 @@ async def start_all_components():
         await start_action_listener
         await start_fol_poster
         await start_state_saver
+
     print("All components started.")
     
 if __name__ == "__main__":

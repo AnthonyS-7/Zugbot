@@ -39,6 +39,12 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     async def on_game_end():
         await client.close()
 
+    async def send_message_to_hosting_discord(message_to_send: str):
+        if config.send_messages_to_hosting_discord:
+            channel_to_send_to = await client.fetch_channel(config.hosting_discord_channel_id_for_output)
+            await channel_to_send_to.send(message_to_send) # type: ignore
+
+
     async def start_discord_bot():
         global client_started
         if not client_started:

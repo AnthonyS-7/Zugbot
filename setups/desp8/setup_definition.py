@@ -68,7 +68,7 @@ def make_desperado_inventor(username: str, flip_path: str):
             action=ability.Action(desperado_action_function),
             is_instant=True,
             ability_restrictions=ability.AbilityRestrictions(shot_count=1, day_required=True, night_required=False),
-            ability_modifiers=ability.AbilityModifiers(invest_power=10, damage_amount=1),
+            ability_modifiers=ability.AbilityModifiers(invest_power=10, damage_amount=100),
             action_types=[c.ACTION_TYPE_OTHER]
         )
     print("About to create Inventor player.")

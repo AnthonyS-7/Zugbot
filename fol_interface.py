@@ -36,20 +36,20 @@ last_time_vc_was_posted = time.time()
 
 last_notification_id_seen = -1
 
-def load_turbo_pm_ids() -> dict:
-    if not os.path.exists(config.turbo_pm_json_path):
-        turbo_json_file = open(config.turbo_pm_json_path, 'w')
-        turbo_json_file.close()
-        return dict()
-    else:
-        with open(config.turbo_pm_json_path, 'r') as turbo_pm_file:
-            return json.load(turbo_pm_file)
+# def load_turbo_pm_ids() -> dict:
+#     if not os.path.exists(config.turbo_pm_json_path):
+#         turbo_json_file = open(config.turbo_pm_json_path, 'w')
+#         turbo_json_file.close()
+#         return dict()
+#     else:
+#         with open(config.turbo_pm_json_path, 'r') as turbo_pm_file:
+#             return json.load(turbo_pm_file)
         
-def save_turbo_pm_ids() -> None:
-    with open(config.turbo_pm_json_path, 'w') as turbo_json_file:
-        json.dump(turbo_pm_ids, turbo_json_file)
+# def save_turbo_pm_ids() -> None:
+#     with open(config.turbo_pm_json_path, 'w') as turbo_json_file:
+#         json.dump(turbo_pm_ids, turbo_json_file)
 
-turbo_pm_ids: dict = load_turbo_pm_ids()
+# turbo_pm_ids: dict = load_turbo_pm_ids()
 
 
 vote_cleaner = re.compile(r"[^A-Za-z0-9\-\._]") # everything not in the list is a character that can't be
@@ -783,9 +783,9 @@ async def announce_winner(town_win: bool, mafia_members: list[str]) -> None:
     await close_or_open_thread(close=False)
 
 
-def get_turbo_pm_id(player: str) -> int | str:
-    global turbo_pm_ids
-    return turbo_pm_ids.get(player.lower(), -1)
+# def get_turbo_pm_id(player: str) -> int | str:
+#     global turbo_pm_ids
+#     return turbo_pm_ids.get(player.lower(), -1)
 
 async def make_wolfchat_pm(wolfteam: list[str]):
     global wolfchat_topic_id

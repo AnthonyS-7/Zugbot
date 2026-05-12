@@ -1,0 +1,5 @@
+# [color=red] Mafia Power Role Killer[/color]
+
+**Shoot Power Role (1-shot)** - Use /shoot [player] to attempt to kill a player. They will die if they are a Power Role.
+
+Reach parity with the town.

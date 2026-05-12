@@ -17,6 +17,8 @@ import roles
 import inspect
 import setup
 
+import re
+
 turbo_task: asyncio.Task | None = None
 posting_queue_task:  asyncio.Task | None = None
 
@@ -35,6 +37,7 @@ assert setup_object is not None
 ALLOWED_SETUPS = setup.list_available_setups()
 ALLOWED_TOPIC_IDS = [9524]
 TURBO_HOST_ACCOUNTS = ["Zwischenzug"]
+CANNOT_JOIN_TURBOS = ["Zugbot"]
 
 async def do_turbos():
     global turbo_task
@@ -88,8 +91,11 @@ def force_join_game():
     async def inner_func(discard_1, discard_2, discard_3, target_user: str, post: p.Post):
         assert setup_object is not None
         global playerlist
+        target_user = re.sub(fol_interface.vote_cleaner, "", target_user)
         if target_user.lower() in [player.lower() for player in playerlist]:
             fol_interface.create_post(f"{target_user} is already in the game!", topic_id_parameter=post.topicNumber)
+        elif target_user.lower() in [cannot_join_user.lower() for cannot_join_user in CANNOT_JOIN_TURBOS + TURBO_HOST_ACCOUNTS]:
+            fol_interface.create_post(f"{target_user} cannot be added to turbos.", topic_id_parameter=post.topicNumber)
         elif len(playerlist) == setup_object.playercount:
             fol_interface.create_post(f"The game is already full!", topic_id_parameter=post.topicNumber)
         else:
@@ -105,6 +111,7 @@ def force_quit_game():
     async def inner_func(discard_1, discard_2, discard_3, target_user: str, post: p.Post):
         assert setup_object is not None
         global playerlist
+        target_user = re.sub(fol_interface.vote_cleaner, "", target_user)
         if target_user.lower() in [player.lower() for player in playerlist]:
             fol_interface.create_post(f"{target_user} has been removed from the game.", topic_id_parameter=post.topicNumber)
             for num in range(len(playerlist)):
@@ -123,6 +130,7 @@ def force_join_game_multiple():
             return
         targets = target_users.split(",")
         for target in targets:
+            target = re.sub(fol_interface.vote_cleaner, "", target)
             if target.lower() in [player.lower() for player in playerlist]:
                 fol_interface.create_post(f"{target} is already in the game!", topic_id_parameter=post.topicNumber)
             elif len(playerlist) == setup_object.playercount:
