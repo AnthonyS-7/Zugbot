@@ -82,12 +82,15 @@ class AbilityModifiers:
                  protection_level=0,
                  damage_amount=0,
                  target_focus=0, # TODO: should this be in here? unsure.
+                 is_ita=False,
+                 ita_tags: None | dict[str, int] = None,
                  ) -> None:
         self.invest_power = invest_power
         self.protection_level = protection_level
         self.target_focus = target_focus
         self.damage_amount = damage_amount
-
+        self.is_ita = is_ita
+        self.ita_tags = ita_tags if ita_tags is not None else dict()
 
 def process_redirects(action_parameters: list, ability: 'a.Ability', no_redirects=False) -> list:
     """
@@ -133,7 +136,8 @@ class Ability:
                  willpower_required: float | None = None,
                  action_types: list[str] = [c.FALSE_ACTION],
                  ignore_action_deadline=False,
-                 force_send_feedback_in_submission_location=False) -> None:
+                 force_send_feedback_in_submission_location=False,
+                 no_action_processed_post=False) -> None:
         """
         TODO: update ability docs
         """
@@ -156,6 +160,8 @@ class Ability:
         self.action_types = action_types
 
         self.use_count = 0
+
+        self.no_action_processed_post = no_action_processed_post
 
         self.id = get_next_id()
         all_abilities.append(self)
@@ -181,7 +187,7 @@ class Ability:
         self.use_count += 1
 
 
-    async def attempt_to_use_ability(self, post: p.Post, player: 'pl.Player | None', gamestate: game_state.GameState, action_submission_open: bool, is_host_post: bool = False):
+    async def attempt_to_use_ability(self, post: p.Post, player: 'pl.Player | None', gamestate: game_state.GameState, action_submission_open: bool, ita_submission_open: bool, is_host_post: bool = False):
         """
         post: The post that may have attempted to use this ability
         player: The player that attempted to use an ability
@@ -203,10 +209,15 @@ class Ability:
         if not self.ignore_action_deadline and not action_submission_open:
             print("Action submission is not open, and this ability does not ignore the action deadline.")
             return
+        if self.ability_restrictions.ita_required and not ita_submission_open:
+            print("ITA submission is not open, and this ability can only be used in ITA sessions.")
+            return
         if not is_submission_location_correct(self.submission_location, post.topicNumber, post.poster):
             print(f"Submission location for {self.ability_name} is wrong")
             return
         print(f"Submission location for {self.ability_name} is correct (or is a host command)")
+
+        
 
         try:
             parameters = self.syntax_parser.parse_discourse_post(post)
@@ -230,9 +241,9 @@ class Ability:
             print(f"This ability failed verification with message: {error_message}")
             return
         print("Ability passed verification!")
-        if not self.force_send_feedback_in_submission_location:
+        if not self.force_send_feedback_in_submission_location and not self.no_action_processed_post:
             fol_interface.send_message("Action processed.", player.username, priority=5)
-        else:
+        elif not self.no_action_processed_post:
             fol_interface.create_post(string_to_post="Action processed.", topic_id_parameter=post.topicNumber, priority=5)
 
         if self.is_instant and (self.willpower_required is None or player.willpower >= self.willpower_required):

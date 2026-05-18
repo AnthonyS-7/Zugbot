@@ -51,9 +51,13 @@ with open('config.yaml', 'r') as config_file:
 
     include_itas: bool = config_dict['include_itas']
     ita_windows: list[dict[str, int]] = config_dict['ita_windows']
+    ita_base_damage: int = config_dict['ita_base_damage']
+    ita_ads: bool = config_dict['ita_ads']
 
     send_messages_to_hosting_discord: bool = config_dict['send_messages_to_hosting_discord']
     hosting_discord_channel_id_for_output: int = config_dict['hosting_discord_channel_id_for_output']
+
+    do_not_flip: bool = config_dict['do_not_flip']
 
     # Below this line is field from the setup loaded here
     game_name = setup_object.game_name

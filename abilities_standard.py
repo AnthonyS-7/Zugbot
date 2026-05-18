@@ -4,6 +4,8 @@ import fol_interface
 import player
 from typing import Callable
 import constants as c
+import config
+import fam6
 
 def RESET_ABILITY() -> 'ability.Ability':
     """
@@ -143,6 +145,51 @@ def IC_ABILITY(allowed_cycles: list[int] | Callable[[int], bool]) -> "ability.Ab
         ability_restrictions=ability.AbilityRestrictions(night_required=False, day_required=True,
                                                          shot_count=1, allowed_cycles=allowed_cycles)
     )
+
+def ITA_ACTION() -> "ability.Action":
+    """
+    Returns an ITA action.
+    """
+    import discord_interface
+    import modbot
+    async def ita_function(acting_player: player.Player, gamestate, ability: ability.Ability, target_player: player.Player, text_of_quote: str):
+        if len(acting_player.ita_items) != 0:
+            ita_item_to_use = acting_player.ita_items.pop(0)
+            to_post_string = text_of_quote + "\n\n"
+            await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired an ITA at {target_player.username}!")
+            to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use)
+            if config.ita_ads:
+                to_post_string += "\n" + fam6.get_ita_ad()
+            fol_interface.create_post(to_post_string)
+            await modbot.resolve_current_deaths(gamestate=gamestate, during_night_death_flavor=False,
+                                      fix_votecount=True, hide_death_messages=True)
+        else:
+            fol_interface.send_message("You do not have any more ITAs.", username=acting_player.username)
+    return ability.Action(ita_function)
+
+def ITA_ABILITY() -> "ability.Ability":
+    """
+    Returns an ITA ability.
+    """
+    return ability.Ability(
+        ability_name="In-Thread Attack",
+        syntax_parser=syn.SyntaxParser("ITA", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME], include_whole_post=True),
+        action=ITA_ACTION(),
+        submission_location=c.IN_THREAD,
+        is_instant=True,
+        ignore_action_deadline=False,
+        ability_restrictions=ability.AbilityRestrictions(shot_count=-1, 
+                                                         cooldown=0, 
+                                                         self_target_allowed=False, 
+                                                         ita_required=True, 
+                                                         day_required=True, 
+                                                         night_required=False),
+        ability_modifiers=ability.AbilityModifiers(is_ita=True),
+        action_types=[c.ITA],
+        no_action_processed_post=True
+    )
+
+
 
 def make_cycling(abilities_list: list["ability.Ability"], cycle_name: str):
     """

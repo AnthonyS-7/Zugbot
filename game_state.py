@@ -40,6 +40,10 @@ class GameState:
             if filter_func(player):
                 result.append(player)
         return result
+    
+    def apply_function_to_all_players(self, function_to_apply: Callable, living_players_only: bool) -> None:
+        for player in (self.original_players if not living_players_only else self.current_players):
+            function_to_apply(player)
 
     def player_exists(self, player: str, count_dead_as_existing=False) -> bool:
         for player_ in (self.current_players if not count_dead_as_existing else self.original_players):
@@ -107,6 +111,8 @@ class GameState:
         return player_object.rolecard_path
 
     def is_game_over(self):
+        if config.do_not_flip:
+            return False
         print("Doing game over check: ")
         print(f"{self.count_players_of_alignment(c.TOWN)=}")
         print(f"{self.count_players_of_alignment(c.MAFIA)=}")

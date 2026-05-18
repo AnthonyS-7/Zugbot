@@ -49,6 +49,7 @@ class Post:
             print(f"Exception of type {type(e)} when parsing with raw text format - trying next format.")
             period_index = self.timestamp.find(".")
             self.datetime_timestamp = datetime.datetime.strptime(self.timestamp[0:period_index], "%Y-%m-%dT%H:%M:%S")
+        self.datetime_timestamp = self.datetime_timestamp.replace(tzinfo=datetime.timezone(offset=datetime.timedelta()))
         self.postNumber = str(postNumber)
         self.content_with_quotes = content
         self.content = removeQuotes(content)

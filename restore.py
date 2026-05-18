@@ -112,6 +112,7 @@ def restore_individual_variables(json_input: dict):
     modbot.all_abilities_are_disabled = json_input["modbot.all_abilities_are_disabled"]
     modbot.game_restored_from_file = True
     config.game_start_time = json_input["config.game_start_time"]
+    config.ita_base_damage = json_input["config.ita_base_damage"]
 
 def save_json():
     to_save = {
@@ -130,7 +131,8 @@ def save_json():
         "modbot.action_submission_open" : modbot.action_submission_open,
         "modbot.game_end_announced_already" : modbot.game_end_announced_already,
         "modbot.all_abilities_are_disabled" : modbot.all_abilities_are_disabled,
-        "config.game_start_time" : config.game_start_time
+        "config.game_start_time" : config.game_start_time,
+        "config.ita_base_damage" : config.ita_base_damage,
     }
     json_file = open(GAMESTATE_JSON_PATH, 'w')
     json.dump(to_save, json_file, indent=4, default=queue_encoder)

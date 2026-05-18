@@ -30,6 +30,7 @@ IN_WOLFCHAT = 2
 INVESTIGATIVE = "investigative"
 COMMUNICATIVE = "communicative"
 KILLING = "killing"
+ITA = 'ita'
 REDIRECTION = 'redirection'
 BLOCKING_OR_EMPOWERING = 'roleblock_or_empower'
 PROTECTIVE = "protective"

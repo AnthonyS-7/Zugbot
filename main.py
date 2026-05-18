@@ -32,6 +32,9 @@ async def start_all_components():
             if config.do_votecounts:
                 start_vc_bot = group.create_task(modbot.run_vc_bot())
                 tasks.append(start_vc_bot)
+            if config.include_itas:
+                start_ita_window_poster = group.create_task(modbot.post_ita_window_announcements())
+                tasks.append(start_ita_window_poster)
     else:
         start_control = asyncio.create_task(modbot.run_modbot())
         start_action_listener = asyncio.create_task(modbot.run_action_processor())
@@ -46,6 +49,10 @@ async def start_all_components():
             start_vc_bot = asyncio.create_task(modbot.run_vc_bot())
             tasks.append(start_vc_bot)
             await start_vc_bot
+        if config.include_itas:
+            start_ita_window_poster = asyncio.create_task(modbot.post_ita_window_announcements())
+            tasks.append(start_ita_window_poster)
+            await start_ita_window_poster
         await start_control
         await start_action_listener
         await start_fol_poster

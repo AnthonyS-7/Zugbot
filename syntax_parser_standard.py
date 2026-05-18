@@ -11,15 +11,17 @@ SYNTAX_PARSER_PLAYERNAME = (r"([^ \\\n]+)", 1)
 SYNTAX_PARSER_NO_SPACE_STRING = (r"([^ \\\n]+)", 2) # Numbers are just so that these all do not equal eachother
 
 class SyntaxParser:
-    def __init__(self, command_name: str, parameter_list: list[tuple[str, int]] | None) -> None:
+    def __init__(self, command_name: str, parameter_list: list[tuple[str, int]] | None, include_whole_post=False) -> None:
         self.command_name = command_name
         self.parameter_list = [] if parameter_list is None else parameter_list
+        self.include_whole_post = include_whole_post
     
     def parse_discourse_post(self, post: 'p.Post'):
         re_string = rf"/{self.command_name}"
 
         for parameter, discard in self.parameter_list:
             re_string += " " + parameter
+        print(f"Looking for {re_string=}")
         re_parser = re.compile(re_string, re.IGNORECASE)
         
         re_result = re_parser.search(post.content)
@@ -36,6 +38,8 @@ class SyntaxParser:
                 if this_parameter is None:
                     raise ParsingException("This player does not exist!")
             final_result.append(this_parameter)
+        if self.include_whole_post:
+            final_result.append(post.quoteString())
         return final_result
 
     # TODO: add method to parse Discord post

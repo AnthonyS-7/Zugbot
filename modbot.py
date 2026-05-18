@@ -7,6 +7,7 @@ import config
 import game_state
 import roles_folder.host as host
 import ability as a
+import post as postModule
 
 
 import os
@@ -19,7 +20,7 @@ import restore
 
 
 INVALID_FLIP = "This flip is invalid, and should never be posted. If you are seeing this, it is in error."
-
+STAND_BY_FOR_FLIP = "Hosts will reveal the flip manually."
 
 assert config.day_length > config.action_deadline and config.night_length > config.action_deadline
 assert config.action_deadline >= 1
@@ -181,7 +182,8 @@ async def resolve_day_or_night_end_actions(elimination_or_nightkill: str, gamest
     restore.save_all()
 
 
-async def resolve_current_deaths(gamestate: game_state.GameState, during_night_death_flavor=False, fix_votecount=True):
+async def resolve_current_deaths(gamestate: game_state.GameState, during_night_death_flavor=False, fix_votecount=True,
+                                 hide_death_messages=False):
     """
     Kills all players whose health is at 0, and posts the deaths in the thread. This also posts anything in the cache, which
     can be used for death flavor / shot announcements.
@@ -196,7 +198,8 @@ async def resolve_current_deaths(gamestate: game_state.GameState, during_night_d
     
     for about_to_die_player in about_to_die_players:
         flip = get_flip(about_to_die_player, gamestate)
-        fol_interface.add_death_to_cache(about_to_die_player, f"has died{' during the night' if during_night_death_flavor else ''}!\n", flip)
+        if not hide_death_messages:
+            fol_interface.add_death_to_cache(about_to_die_player, f"has died{' during the night' if during_night_death_flavor else ''}!\n", flip)
         fol_interface.send_message("# You have died.", about_to_die_player, priority=1)
 
     gamestate.kill_about_to_die_players()
@@ -204,7 +207,8 @@ async def resolve_current_deaths(gamestate: game_state.GameState, during_night_d
 
     # if len(about_to_die_players) > 0:
     #     fol_interface.to_post_cache += fol_interface.ping_string(gamestate.get_living_players(), include_alive_tags=True)
-    fol_interface.post_cache()
+    if not hide_death_messages:
+        fol_interface.post_cache()
 
     if len(about_to_die_players) > 0 and fix_votecount:
         await fol_interface.post_votecount(players_to_kill=about_to_die_players, nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations())
@@ -246,17 +250,19 @@ def submit_nightkill(player_to_kill: str) -> bool:
         return True
     return False
 
-def get_flip(player: str, gamestate: game_state.GameState):
+def get_flip(player: str, gamestate: game_state.GameState, giving_role_pm=False):
     print(f"Getting flip for {player}")
     if not gamestate.player_exists(player, count_dead_as_existing=True):
         return INVALID_FLIP
+    if not giving_role_pm and config.do_not_flip:
+        return STAND_BY_FOR_FLIP
     flip_path = os.path.join(config.flips_folder, gamestate.get_flip_path(player))
     with open(flip_path, 'r') as flip_file:
         return flip_file.read()
 
 async def give_role_pms(playerlist: list[str], gamestate: game_state.GameState):
     for player in playerlist:
-        flip = get_flip(player, gamestate)
+        flip = get_flip(player, gamestate, giving_role_pm=True)
         player_object = gamestate.get_player_object_original_players(player)
         player_is_mafia = player_object is not None and player_object.alignment == c.MAFIA
         await fol_interface.give_role_pm(player, flip, config.game_name, 
@@ -280,6 +286,46 @@ async def run_vc_bot():
 def send_feedback(feedback_string: str, sources: list[p.Player] | None, receivers: list[p.Player], action_types: list[str], was_instant: bool):
     pass
 
+def determine_if_post_within_action_deadline(post: postModule.Post, require_action_deadline: bool, require_ita_window: bool):
+    assert gamestate is not None
+    phase_start_time = get_phase_start_time()
+    # print(f"Determined that the phase start time was: {datetime.datetime.strftime(phase_start_time, "%Y-%m-%d %H:%M")}")
+    # print(f"Timestamp of post in question: {datetime.datetime.strftime(post.datetime_timestamp, "%Y-%m-%d %H:%M")}")
+    # print(f"Is phase start time naive? {phase_start_time.tzinfo is None}")
+    # print(f"Is post timestamp naive? {post.datetime_timestamp.tzinfo is None}")
+    if require_action_deadline:
+        minutes_in_phase = config.day_length if gamestate.is_day else config.night_length
+        action_end_time = phase_start_time + datetime.timedelta(minutes=(minutes_in_phase - config.action_deadline))
+        # print(f"Determined that the phase end time was: {datetime.datetime.strftime(action_end_time, "%Y-%m-%d %H:%M")}")
+        if post.datetime_timestamp < phase_start_time or post.datetime_timestamp > action_end_time:
+            return False
+    if require_ita_window:
+        if not config.include_itas:
+            return False
+        in_ita_window = False
+        for ita_window_times in config.ita_windows:
+            ita_window_start_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["start"])
+            ita_window_end_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["end"])
+            if ita_window_start_time <= post.datetime_timestamp and post.datetime_timestamp <= ita_window_end_time:
+                in_ita_window = True
+                break
+        if not in_ita_window:
+            return False
+    return True
+
+
+
+def get_phase_start_time():
+    assert gamestate is not None
+    game_start_time = get_game_start_time(include_timezone=True) 
+    minutes_between_game_start_and_phase_start = (gamestate.phase_count - config.first_phase_count) * (config.night_length + config.day_length)
+    if gamestate.is_day and not config.first_phase_is_day: # TODO: are night-phase game starts handled correctly?
+        minutes_between_game_start_and_phase_start += config.night_length
+    if not gamestate.is_day and config.first_phase_is_day: 
+        minutes_between_game_start_and_phase_start += config.day_length
+    phase_start_time = game_start_time + datetime.timedelta(minutes=minutes_between_game_start_and_phase_start)
+    return phase_start_time
+
 async def process_post(post: post_class.Post, gamestate: game_state.GameState, action_submission_open: bool) -> None:
     player_object = gamestate.get_player_object_living_players_only(username=post.poster)
     if (player_object is None or all_abilities_are_disabled) and post.poster.lower() not in config.host_usernames:
@@ -287,7 +333,12 @@ async def process_post(post: post_class.Post, gamestate: game_state.GameState, a
         return None
     is_host_post = player_object is None
     for ability in (player_object.abilities if not is_host_post else host.host_abilities):
-        await ability.attempt_to_use_ability(post, player_object, gamestate, action_submission_open, is_host_post)
+        actions_deadline_open = determine_if_post_within_action_deadline(post, True, False)
+        ita_deadline_open = determine_if_post_within_action_deadline(post, False, True)
+        await ability.attempt_to_use_ability(post=post, player=player_object, gamestate=gamestate, 
+                                             action_submission_open=actions_deadline_open, 
+                                             ita_submission_open=ita_deadline_open,
+                                             is_host_post=is_host_post)
         restore.save_all()
         
 async def run_action_processor():
@@ -333,11 +384,33 @@ async def wait_for_time(time_datetime: datetime.datetime):
     """
     Given a datetime, sleeps until that time is reached.
     """
-    seconds_to_sleep = (time_datetime - datetime.datetime.now()).total_seconds()
+    if time_datetime.tzinfo == None or time_datetime.tzinfo.utcoffset(time_datetime) == None: # if input time is naive
+        seconds_to_sleep = (time_datetime - datetime.datetime.now()).total_seconds()
+    else:
+        seconds_to_sleep = (time_datetime - datetime.datetime.now(datetime.UTC)).total_seconds()
     if seconds_to_sleep <= 0:
         return None
     print(f"Sleeping for {seconds_to_sleep} seconds")
     await asyncio.sleep(seconds_to_sleep)
+
+async def post_ita_window_announcements():
+    if not config.include_itas:
+        return False
+    while gamestate is None or game_started == False:
+        await asyncio.sleep(2)
+    phase_start_time = get_phase_start_time()
+    ita_window_counter = 1
+    for ita_window_times in config.ita_windows:
+        ita_window_start_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["start"])
+        ita_window_end_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["end"])
+        await wait_for_time(ita_window_start_time)
+        fol_interface.create_post(f"# ITA Window {ita_window_counter} has begun! Use /ITA [playername] @Zugbot to shoot. \n"
+                                  "- You *must* ping Zugbot for your shot to be registered. \n" \
+                                  "- Hosts will post flips manually. \n")
+        await wait_for_time(ita_window_end_time)
+        fol_interface.create_post(f"# ITA Window {ita_window_counter} has ended!")
+        ita_window_counter += 1
+
 
 async def start_game() -> bool:
     """
@@ -412,8 +485,11 @@ async def start_game() -> bool:
         config.game_start_time = datetime.datetime.strftime(game_start_time, "%Y-%m-%d %H:%M")
     return True
 
-def get_game_start_time() -> datetime.datetime:
-    return datetime.datetime.strptime(config.game_start_time, "%Y-%m-%d %H:%M")
+def get_game_start_time(include_timezone=False) -> datetime.datetime:
+    if not include_timezone:
+        return datetime.datetime.strptime(config.game_start_time, "%Y-%m-%d %H:%M")
+    else:
+        return datetime.datetime.strptime(f"{config.game_start_time} {config.utc_offset.replace(":", "")}", "%Y-%m-%d %H:%M %z")
 
 async def do_day_start(game_start_time: datetime.datetime, gamestate: game_state.GameState) -> tuple[datetime.datetime, datetime.datetime]:
     """

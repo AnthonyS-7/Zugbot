@@ -22,8 +22,16 @@ if boolean_var:
 import constants as c
 import config
 import fol_interface
+import discord_interface
+import fam6
+
 
 import math
+
+import random
+
+def is_a_crit(chance_to_crit: float):
+    return chance_to_crit > random.random()
 
 # nomination info:
 # players have: can_nominate, target_of_nomination, nomination_order
@@ -112,13 +120,41 @@ class Passives:
                  invest_alignment: 'Alignment | None' = None,
                  invest_resistance=1.0,
                  protection_multiplier=1.0,
-                 damage_multiplier=1.0) -> None:
+                 damage_multiplier=1.0,
+                 ita_angel_count=0,
+                 ita_angel_crit_count=0,
+                 flat_ita_resistance=0,
+                 ita_tags: 'set[str] | None' = None) -> None:
         self.voting_power = voting_power # TODO: implement
         self.voting_power_is_public = voting_power_is_public # TODO: implement
         self.invest_alignment = invest_alignment
         self.invest_resistance = invest_resistance
         self.protection_multiplier = protection_multiplier
         self.damage_multiplier = damage_multiplier # damage is multiplied *after* protection.
+        self.ita_angel_count = ita_angel_count 
+        self.ita_angel_crit_count = ita_angel_crit_count
+        self.flat_ita_resistance = flat_ita_resistance
+        self.ita_tags: set[str] = ita_tags if ita_tags is not None else set()
+
+
+class ITAItem:
+    """
+    This class holds information about ITAs. 
+    This does not implement the actual use of ITAs.
+
+    Note that only positive damage ITAs are allowed. The default value of -1 mean that it is the
+    global base damage.
+
+    Note that the identifier is shown to the player!
+    """
+    def __init__(self, 
+                 damage=-1,
+                 can_crit=True,
+                 identifier="Innate ITA") -> None:
+        self.damage=damage
+        self.can_crit=can_crit
+        self.identifier = identifier
+
 
 class Player:
     def __init__(self, 
@@ -130,6 +166,8 @@ class Player:
                  redirection: Redirection | None = None,
                  unresolved_actions: "None | list[UnresolvedPhaseEndAction]" = None, 
                  passives: None | Passives = None,
+                 ita_items: None | list[ITAItem] = None,
+                 max_health=100
                  ) -> None:
         """
         Creates a player.
@@ -150,7 +188,8 @@ class Player:
         """
         self.username = username
         self.alignment = alignment
-        self.health: int = 100
+        self.health: int = max_health
+        self.max_health = max_health
         self.rolecard_path = rolecard_path
         self.protection: int = 0
         self.abilities = ([] if abilities is None else abilities) + get_default_abilities() \
@@ -165,6 +204,7 @@ class Player:
             self.target_of_nomination: Player | None = None
 
         self.passives = passives if passives is not None else Passives()
+        self.ita_items = ita_items if ita_items is not None else []
         self.actions_costs: dict[str, float] = dict() # This stores the costs of any instant actions during the current phase
                                                     # and is used when verifying any (instant or non-instant) actions
                                                     # to ensure they do not exceed the maximum costs
@@ -194,6 +234,72 @@ class Player:
         self.protection = 0
         self.health = max(0, self.health - damage_amount)
         return self.health == 0
+    
+    def add_default_ita_tags(self):
+        """
+        This method examines the player state to add or remove certain ita tags.
+
+        Tags added/removed:
+        - full_health if max_health == health
+        """
+        if self.max_health == self.health:
+            self.passives.ita_tags.add("full_health")
+        else:
+            self.passives.ita_tags.discard("full_health")
+    
+    async def take_ita_damage(self, modifiers: 'a.AbilityModifiers', ita_item_used: ITAItem) -> str:
+        """
+        Returns the ITA feedback that should be posted publicly.
+        """
+        self.add_default_ita_tags()
+
+        # Marluna's role
+        if 'vampire' in self.passives.ita_tags and 'vampire' in modifiers.ita_tags:
+            fam6.heal_vampire_player()
+
+        can_crit = ita_item_used.can_crit
+        damage = ita_item_used.damage
+        if damage == -1:
+            damage = config.ita_base_damage
+
+        await discord_interface.send_message_to_hosting_discord(f"ITA properties: {damage=}, {can_crit=}")
+        await discord_interface.send_message_to_hosting_discord(f"Defensive properties: {self.health=}, {self.protection=}, {self.passives.flat_ita_resistance=}")
+        await discord_interface.send_message_to_hosting_discord(f"Misc properties:  {self.passives.ita_angel_count=}, {self.passives.ita_angel_crit_count=}")
+        if (self.passives.ita_angel_count > 0):
+            self.passives.ita_angel_count -= 1
+            return "# Miss!"
+        if (self.passives.ita_angel_crit_count > 0):
+            self.passives.ita_angel_crit_count -= 1
+            can_crit = False
+        for tag in self.passives.ita_tags:
+            if tag in modifiers.ita_tags:
+                await discord_interface.send_message_to_hosting_discord(f"ITA damage increased by {modifiers.ita_tags[tag]} due to tag: {tag}")
+                damage += modifiers.ita_tags[tag]
+
+        damage -= self.passives.flat_ita_resistance
+        if self.protection >= damage:
+            self.protection -= damage
+            damage = 0
+        elif self.protection > 0:
+            damage -= self.protection
+            self.protection = 0
+        crit_chance = (damage / self.health) if can_crit else 0
+        is_crit = is_a_crit(crit_chance)
+        await discord_interface.send_message_to_hosting_discord(f"ITA has crit chance: {crit_chance}. Is crit: {is_crit}")
+        if damage >= self.health:
+            self.health = 0
+            await discord_interface.send_message_to_hosting_discord(f"## {self.username} has died by reaching 0 HP!")
+            return f"# Hit! The target has reached 0 HP and died. Stand by for flip."
+        if is_crit:
+            self.health = 0
+            await discord_interface.send_message_to_hosting_discord(f"## {self.username} has died from a direct hit!")
+            return f"# Direct hit! Stand by for flip."
+        self.health -= damage
+        return "The shot connects."
+    
+        # TODO: other custom roles
+        
+
 
     def receive_protection(self, modifiers: 'a.AbilityModifiers'):
         self.protection += round( modifiers.protection_level * self.passives.protection_multiplier )
