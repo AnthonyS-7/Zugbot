@@ -1,0 +1,23 @@
+ | OFFICIAL ROLE DOCUMENT, DO NOT QUOTE/SCREENSHOT  |
+ | :-: | 
+ |  ![diafiasco\|100x100](https://www.fortressoflies.com/user_avatar/www.fortressoflies.com/diafiasco/120/2_2.png) <br> **diafiasco** <br> [color=green][b]Town Champs Rep[/b][/color] <br><br> *"I don’t even WANT to advance! in fact*<br>*turns to face the screen*<br>*is this my camera?*<br>*i think the jury are STINKY!!!! yep, i fucking said it. you can’t silence me, woke mob, i speak truth to power"*<br><br>*In your Champs Qualifier, you represented the ever-famous NE/PAQB Mafia Communications community and ended up excelling as a Tracker, catching a wolf who could've gone deep, and in Frieren Mafia, you stopped a kill with your ever-confusing 1-Shot Untargetable role through the strategy of "openly claiming it". However, it would be unfair to attribute your success solely to the luck the draw -- your powers extend beyond the realm of the actual rand, and into the rands that could have been. With your hypothetical cop powers, you can hypothetically catch hypothetical saboteurs doing hypothetical sabotage. Accurately, of course.*
+[center]
+
+**1-Shot ~~Untargetable~~ Ascetic** --- *Passive*
+The first non-killing action targeting you fails. You learn when this happens.
+
+**40 Hypocop Results** --- *Immediate | Day 2+*
+Submit a post from the day where you publicly claimed hypothetical results of every town role in the [S13 Champs setup](https://www.mafiauniverse.com/forums/threads/61064-Season-13-Game-8-Fringe-The-Pattern-Emerges-%28The-Mafia-Championship%29).
+
+You are notified of a random result on your list which is accurate to the results of last night.
+
+As a reminder, the results you need to claim are:
+1. A vigilante shot on a player (considered accurate if the player was killed by a non-factional killing action)
+2. A roleblock on a player (considered accurate if the player did not successfully perform any roleblockable actions)
+3. A voyeur result on a player (considered accurate if the player was targeted by those action types, or if you successfully guess they were targeted by none)
+4. A jailkeep on a player (considered accurate if the player did not successfully perform any roleblockable actions or a kill was stopped on them)
+5. A tracker result on a player (considered accurate if the player visited the target(s) named, or if you successfully guess they visited no one)
+6. A doctor on a player (considered accurate if a kill was stopped on the player)
+7. A JOAT result on a player (may be a roleblocker, vigilante, or tracker result)
+8. A Motion Detector result on a player (considered accurate if you correctly identify whether the target visited or was visited)
+[/center]

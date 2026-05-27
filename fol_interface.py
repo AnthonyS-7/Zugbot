@@ -104,6 +104,8 @@ async def process_substitution(current_username: str, new_username: str, role_pm
     Creates a new role PM for the new user, and fixes username_to_role_pm_id accordingly.
 
     Do not call with invalid usernames. It will break.
+
+    If you wish to add a player instead of substituting an existing player, leave the current_username as an empty string.
     """
     # role_pm_id = username_to_role_pm_id[current_username.lower()]
     # username_to_role_pm_id[new_username.lower()] = role_pm_id
@@ -115,7 +117,7 @@ async def process_substitution(current_username: str, new_username: str, role_pm
     await give_role_pm(new_username, role_pm, config.game_name, 
                                         discord_links=[config.mafia_discord_link] if player_is_mafia else [], 
                                         teammates=teammates if player_is_mafia else None)
-    del username_to_role_pm_id[current_username.lower()]
+    username_to_role_pm_id.pop(current_username.lower(), '')
 
 async def run_fol_poster():
     global post_response_list
@@ -357,14 +359,15 @@ def start_day(living_players: list[str], day_count: int):
     """
     global to_post_cache
     
-    random.seed(time.time())
-    living_players = living_players.copy()
-    random.shuffle(living_players)
+    if not config.disable_day_and_night_start_announcements:
+        random.seed(time.time())
+        living_players = living_players.copy()
+        random.shuffle(living_players)
 
-    string_to_post = f'# Day {day_count} has begun.\n'
-    string_to_post += ping_string(living_players=living_players, include_alive_tags=True)
+        string_to_post = f'# Day {day_count} has begun.\n'
+        string_to_post += ping_string(living_players=living_players, include_alive_tags=True)
 
-    to_post_cache += string_to_post
+        to_post_cache += string_to_post
     post_cache()
     
 def post_all_roles(username_flip_alignment_list: list[list]):
@@ -378,6 +381,8 @@ def post_all_roles(username_flip_alignment_list: list[list]):
     create_post(string_to_post)
 
 async def close_or_open_thread(close=True):
+    if not config.allow_closing_and_opening_threads:
+        return
     await do_api_call(lambda : fluent_discourse_client.t._(str(config.topic_id)).status.json.put({"status":"closed", "enabled":"true" if close else "false"}), ignore_return=True)
 
 
@@ -722,9 +727,10 @@ def post_cache_elimination(eliminated_player: str, was_tie: bool, flip: str, liv
     #create_post(string_to_post, topic_id)
 
 def announce_night_start(phase_number: int, living_players: list[str]):
-    string_to_post = f"# Night {phase_number} begins now.\n"
-    string_to_post += ping_string(living_players=living_players, include_alive_tags=False)
-    create_post(string_to_post, config.topic_id)
+    if config.disable_day_and_night_start_announcements:
+        string_to_post = f"# Night {phase_number} begins now.\n"
+        string_to_post += ping_string(living_players=living_players, include_alive_tags=False)
+        create_post(string_to_post, config.topic_id)
 
 
 
@@ -821,8 +827,11 @@ async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=
     """
     discord_links = [] if discord_links is None else discord_links
     teammates = [] if teammates is None else teammates
+    if not config.include_teammates_in_role_pm:
+        teammates = []
 
     full_pm = "# You are...\n"
+    full_pm = ''
     full_pm += "[quote]\n"
     full_pm += role_pm + "\n"
     full_pm += "[/quote]\n"

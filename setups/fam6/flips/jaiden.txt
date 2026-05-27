@@ -1,0 +1,20 @@
+ | OFFICIAL ROLE DOCUMENT, DO NOT QUOTE/SCREENSHOT  |
+ | :-: | 
+ |  ![Jaiden\|100x100](https://www.fortressoflies.com/user_avatar/www.fortressoflies.com/jaiden/120/2_2.png) <br> **Jaiden** <br> [color=green][b]Town Robothing[/b][/color] <br><br> *"yo im jaiden"*<br><br>*ChatChat was just an online chatroom back on Earth, but here on Planet FoL, you've been employed by the Council to make it a reality. It seems programming skills translate to real life when enhanced with Nyaluminum. The cat-to-dog transformation technology incorporated within ChatChat allows you to imitate others' abilities even after their deaths, providing a convenient excuse for the project to get funding.*
+[center]
+
+**Chat** --- *Passive*
+You begin the game as a cat. While you are a cat, gain 1 ChatChatCharge every time a player flips town. Any Nyaluminum you possess may be converted to 1 ChatChatCharge.
+
+If you are a dog, instead gain 1 ChatChatCharge every time a mafia-aligned player flips.
+
+**ChatChat** --- *1-Shot | Night 0+*
+Create a neighborhood with yourself and two target players. If any player in the neighborhood dies or becomes a dog, the neighborhood closes. This ability can only be used while you are a cat. 
+
+**ChatChatChat** --- *Immediate | 2-Shot | Unstoppable*
+If you are a cat, consume 8 ChatChatCharges to transform into a dog and gain a dead allied player's abilities in addition to your own.
+
+If you are a dog, gain a dead allied player's abilities, replacing any abilities you previously inherited. If you used any Immediate actions from your old abilities this phase, you cannot use your new abilities until next phase.
+
+Charges of limited-shot abilities you inherit will not be refreshed.
+[/center]

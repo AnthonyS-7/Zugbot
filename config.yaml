@@ -15,6 +15,15 @@ playerlist_usernames:
 - Zug
 - zug_alt_1
 - zug_alt_2
+- NotAZug
+- NotAZugAlt
+- zug_alt_account
+- secret_cookie_thread
+- Eigenzug
+- Eigenalt
+- Unzug
+- Zqgzwqng
+- AlsoZug
 topic_id: 9145 # The topic ID of the game thread
 
 mafia_discord_link: ''
@@ -36,11 +45,14 @@ ita_base_damage: 10 # The base damage of ITAs
 ita_ads: false # Whether to have 'ads' in ITAs.
 
 do_not_flip: true # Disables flips (and also disables Zugbot's game end check, so that Zugbot never ends the game on its own)
+allow_closing_and_opening_threads: true
+disable_day_and_night_start_announcements: true
 
 # Most users can safely ignore everything below this line.
 
 send_messages_to_hosting_discord: true # True if debug messages should be sent to a host discord
 hosting_discord_channel_id_for_output: 1503775486889820282 # The ID of the discord channel to output debug messages to
+hosting_discord_guild_id: 1462965682970038305 # Most commands are only visible in this discord
 
 resolve_like_vc_plugin: true # Should be set to true for most use cases.
 
@@ -66,4 +78,4 @@ votecount_post_interval: 10 # The number of posts between automatic votecount po
 
 debug_print_all_posts: true
 
-crash_on_exception: false # Makes Zugbot crash entirely when reaching an unhandeled exception. Also, inadvertently turns off restore saving.
+crash_on_exception: true # Makes Zugbot crash entirely when reaching an unhandeled exception. Also, inadvertently turns off restore saving.

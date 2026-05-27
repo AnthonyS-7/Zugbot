@@ -12,6 +12,7 @@ quoteMatcher = re.compile(r"(\[quote.*?\])(.*?)(\[/quote\])", re.IGNORECASE | re
 def removeQuotes(post_content: str) -> str:
     """
     Given a string, removes all BBCode quotes in it.
+    Also, we remove code blocks.
 
     TODO: make this not have edge case bugs. Or maybe don't, because it's likely that all 
     edge cases just make it work even when the user messed up quote tags (and in these cases,
@@ -20,7 +21,10 @@ def removeQuotes(post_content: str) -> str:
     post_has_quotes = True
     while(post_has_quotes):
         post_content, post_has_quotes = removeOneQuote(post_content)
+    post_content = remove_code_blocks(post_content)
+    post_content = remove_arrow_quotes(post_content)
     return post_content
+    
 
 def removeOneQuote(post_content: str) -> list:
     """
@@ -37,6 +41,40 @@ def removeOneQuote(post_content: str) -> list:
         currentMatch = quoteMatcher.search(post_content[currentIndex:])
     return [post_content[0:start] + post_content[end:], True]
 
+def remove_arrow_quotes(post_content: str) -> str:
+    lines_in_post = post_content.split('\n')
+    result_lines = []
+    for line in lines_in_post:
+        if not line.strip().startswith('>'):
+            result_lines.append(line)
+    return '\n'.join(result_lines)
+
+def remove_code_blocks(post_content: str) -> str:
+    """
+    Removes code blocks.
+
+    This function is not entirely correct (there are very strange edge cases, at least in the version of 
+    Markdown on the Discourse version this is designed for). However, it is probably correct in practice.
+    """
+    lines_in_post = post_content.split('\n')
+    result_lines = []
+    in_code_block = False
+    # First, we're going to clean the triple backticks (if they're on separate lines)
+    for line in lines_in_post:
+        if not in_code_block:
+            if line.strip().startswith('```'):
+                in_code_block = True
+            else:
+                result_lines.append(line)
+        else:
+            if line.strip() == '```':
+                in_code_block = False
+
+    # Now we clean the single backticks (if they're on the same line)
+    for i, line in enumerate(result_lines):
+        result_lines[i] = re.sub('`.*?`', '', line)
+    
+    return '\n'.join(result_lines)
 
 
 class Post:

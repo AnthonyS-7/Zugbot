@@ -1,0 +1,11 @@
+ | OFFICIAL ROLE DOCUMENT, DO NOT QUOTE/SCREENSHOT  |
+ | :-: | 
+ |  ![Arctic\|100x100](https://www.fortressoflies.com/user_avatar/www.fortressoflies.com/arctic/120/2_2.png) <br> **Arctic** <br> [color=green][b]Town Priority Target[/b][/color] <br><br> *"at one point i was writing a post to treasure saying 'you’re wasting your time suspecting me when my portrait has already been pinned in wolf chat with a big cross on my face and "KILL IMMEDIATELY" written in red marker' but i decided it wasn’t worth it"*<br><br>*Your job on Planet FoL is to identify the most crucial citizens in need of protection. It's pretty easy. We all know who's going to be targeted by the Saboteurs -- the N1 kills on this site are so predictable that you can basically guess them pre-rand, and even a blatant taunt probably won't shake them. Unfortunately, nobody actually gave you the ability to privately communicate with the Ministry of Health, but surely they're competent enough to actually protect the obvious targets. All you have to do is divert Saboteur attention to those players and hope the protectives do their job.*
+
+[center]
+
+**I told you so** --- *Day*
+Target a player: at the start of the night, the mafia chat will receive an image of their avatar with a red X through it and "KILL IMMEDIATELY" written in red marker. At the end of the night, you will be informed if any nightkills attempted to target this player.
+
+You may spend 1 Nyaluminum to add a message alongside this image.
+[/center]

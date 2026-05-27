@@ -15,7 +15,6 @@ import re
 import roles_folder.roles_exceptions as r
 import roles_folder.roles_templates as rt
 import syntax_parser_standard as syn
-import role_standards.verify_standard as aav
 import ability
 import player
 import constants as c
@@ -35,7 +34,7 @@ def substitution_syntax_parser(post: p.Post):
     return [current_player, new_player]
 
 async def do_substitution(player_object: 'player.Player | None', gamestate: "game_state.GameState", ability, current_player: 'player.Player', new_player: str):    
-    role_pm = modbot.get_flip(current_player.username, gamestate)
+    role_pm = modbot.get_flip(current_player.username, gamestate, giving_role_pm=True)
     current_player_username = current_player.username # needed because current_player.username gets changed later
     new_player, successful_name_resolution = await fol_interface.correct_capilatization_in_discourse_username(new_player)
 

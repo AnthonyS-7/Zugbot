@@ -124,7 +124,8 @@ class Passives:
                  ita_angel_count=0,
                  ita_angel_crit_count=0,
                  flat_ita_resistance=0,
-                 ita_tags: 'set[str] | None' = None) -> None:
+                 defensive_ita_tags: 'set[str] | None' = None,
+                 offensive_ita_tags: 'dict[str, int] | None' = None) -> None:
         self.voting_power = voting_power # TODO: implement
         self.voting_power_is_public = voting_power_is_public # TODO: implement
         self.invest_alignment = invest_alignment
@@ -134,7 +135,8 @@ class Passives:
         self.ita_angel_count = ita_angel_count 
         self.ita_angel_crit_count = ita_angel_crit_count
         self.flat_ita_resistance = flat_ita_resistance
-        self.ita_tags: set[str] = ita_tags if ita_tags is not None else set()
+        self.defensive_ita_tags: set[str] = defensive_ita_tags if defensive_ita_tags is not None else set()
+        self.offensive_ita_tags: dict[str, int] = offensive_ita_tags if offensive_ita_tags is not None else dict()
 
 
 class ITAItem:
@@ -167,6 +169,7 @@ class Player:
                  unresolved_actions: "None | list[UnresolvedPhaseEndAction]" = None, 
                  passives: None | Passives = None,
                  ita_items: None | list[ITAItem] = None,
+                 silent_ita_items: None | list[ITAItem] = None,
                  max_health=100
                  ) -> None:
         """
@@ -193,7 +196,7 @@ class Player:
         self.rolecard_path = rolecard_path
         self.protection: int = 0
         self.abilities = ([] if abilities is None else abilities) + get_default_abilities() \
-                          + ([get_nightkill_ability()] if alignment == c.MAFIA else [])
+                          + ([get_nightkill_ability()] if (alignment == c.MAFIA) and (not config.disable_nightkill) else [])
         self.willpower = willpower
         self.redirection = redirection
 
@@ -205,6 +208,7 @@ class Player:
 
         self.passives = passives if passives is not None else Passives()
         self.ita_items = ita_items if ita_items is not None else []
+        self.silent_ita_items = silent_ita_items if silent_ita_items is not None else []
         self.actions_costs: dict[str, float] = dict() # This stores the costs of any instant actions during the current phase
                                                     # and is used when verifying any (instant or non-instant) actions
                                                     # to ensure they do not exceed the maximum costs
@@ -243,18 +247,19 @@ class Player:
         - full_health if max_health == health
         """
         if self.max_health == self.health:
-            self.passives.ita_tags.add("full_health")
+            self.passives.defensive_ita_tags.add("full_health")
         else:
-            self.passives.ita_tags.discard("full_health")
+            self.passives.defensive_ita_tags.discard("full_health")
     
-    async def take_ita_damage(self, modifiers: 'a.AbilityModifiers', ita_item_used: ITAItem) -> str:
+    async def take_ita_damage(self, modifiers: 'a.AbilityModifiers', ita_item_used: ITAItem, offensive_ita_tags: dict[str, int]) -> str:
         """
         Returns the ITA feedback that should be posted publicly.
         """
         self.add_default_ita_tags()
+        hosting_discord_feedback = ""
 
         # Marluna's role
-        if 'vampire' in self.passives.ita_tags and 'vampire' in modifiers.ita_tags:
+        if 'vampire' in self.passives.defensive_ita_tags and 'vampire' in offensive_ita_tags:
             fam6.heal_vampire_player()
 
         can_crit = ita_item_used.can_crit
@@ -262,19 +267,20 @@ class Player:
         if damage == -1:
             damage = config.ita_base_damage
 
-        await discord_interface.send_message_to_hosting_discord(f"ITA properties: {damage=}, {can_crit=}")
-        await discord_interface.send_message_to_hosting_discord(f"Defensive properties: {self.health=}, {self.protection=}, {self.passives.flat_ita_resistance=}")
-        await discord_interface.send_message_to_hosting_discord(f"Misc properties:  {self.passives.ita_angel_count=}, {self.passives.ita_angel_crit_count=}")
+        hosting_discord_feedback += f"ITA properties: {damage=}, {can_crit=} \n"
+        hosting_discord_feedback += f"Defensive properties: {self.health=}, {self.protection=}, {self.passives.flat_ita_resistance=} \n"
+        hosting_discord_feedback += f"Misc properties:  {self.passives.ita_angel_count=}, {self.passives.ita_angel_crit_count=} \n"
         if (self.passives.ita_angel_count > 0):
             self.passives.ita_angel_count -= 1
+            await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
             return "# Miss!"
         if (self.passives.ita_angel_crit_count > 0):
             self.passives.ita_angel_crit_count -= 1
             can_crit = False
-        for tag in self.passives.ita_tags:
-            if tag in modifiers.ita_tags:
-                await discord_interface.send_message_to_hosting_discord(f"ITA damage increased by {modifiers.ita_tags[tag]} due to tag: {tag}")
-                damage += modifiers.ita_tags[tag]
+        for tag in self.passives.defensive_ita_tags:
+            if tag in offensive_ita_tags:
+                hosting_discord_feedback += f"ITA damage increased by {offensive_ita_tags[tag]} due to tag: {tag} \n"
+                damage += offensive_ita_tags[tag]
 
         damage -= self.passives.flat_ita_resistance
         if self.protection >= damage:
@@ -285,18 +291,28 @@ class Player:
             self.protection = 0
         crit_chance = (damage / self.health) if can_crit else 0
         is_crit = is_a_crit(crit_chance)
-        await discord_interface.send_message_to_hosting_discord(f"ITA has crit chance: {crit_chance}. Is crit: {is_crit}")
+        hosting_discord_feedback += f"ITA has crit chance: {crit_chance}. Is crit: {is_crit} \n"
+
+        message_to_return = ''
         if damage >= self.health:
             self.health = 0
-            await discord_interface.send_message_to_hosting_discord(f"## {self.username} has died by reaching 0 HP!")
-            return f"# Hit! The target has reached 0 HP and died. Stand by for flip."
-        if is_crit:
+            hosting_discord_feedback += f"## {self.username} has died by reaching 0 HP! \n"
+            await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
+            message_to_return = f"# Hit! The target has reached 0 HP and died. Stand by for flip."
+        elif is_crit:
             self.health = 0
-            await discord_interface.send_message_to_hosting_discord(f"## {self.username} has died from a direct hit!")
-            return f"# Direct hit! Stand by for flip."
-        self.health -= damage
-        return "The shot connects."
-    
+            hosting_discord_feedback += f"## {self.username} has died from a direct hit! \n"
+            await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
+            message_to_return = f"# Direct hit! Stand by for flip."
+        else:
+            self.health -= damage
+            await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
+            message_to_return = "The shot connects."
+
+        if fam6.do_bird_check(player_shot=self):
+            assert fam6.willow_player is not None
+            await discord_interface.send_message_to_hosting_discord(f"# {self.username} has been saved by the Willow role, so instead {fam6.willow_player.username} has died!")
+        return message_to_return
         # TODO: other custom roles
         
 
@@ -305,10 +321,10 @@ class Player:
         self.protection += round( modifiers.protection_level * self.passives.protection_multiplier )
     
     def do_day_start_changes(self):
-        self.protection = 0
         self.actions_costs = dict()
 
     def do_night_start_changes(self):
+        self.protection = 0
         self.actions_costs = dict()
 
     def get_alignment(self, modifiers: 'a.AbilityModifiers'):

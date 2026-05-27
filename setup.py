@@ -34,6 +34,9 @@ class Setup:
                  first_phase_is_day=True,
                  first_phase_count=1,
                  is_botf=False,
+                 disable_elimination=False,
+                 disable_nightkill=False,
+                 include_teammates_in_role_pm=True,
                  ) -> None:
         """
         Most parameters here are self-explanatory. The one that is not:
@@ -53,6 +56,9 @@ class Setup:
         self.get_rolelist = get_rolelist
         self.allow_multivoting = allow_multivoting
         self.no_exe_wins_ties = no_exe_wins_ties
+        self.disable_elimination = disable_elimination
+        self.disable_nightkill = disable_nightkill
+        self.include_teammates_in_role_pm = include_teammates_in_role_pm
 
         self.is_botf = is_botf # TODO: consider moving elsewhere?
 
@@ -60,6 +66,17 @@ class Setup:
 
         if not (do_votecounts or allow_no_exe):
             raise InvalidSetupException()
+        
+    def check_if_flip_path_is_valid(self, flip_path: str):
+        full_path = os.path.join(c.SETUP_FOLDER, self.game_name, c.FLIPS_FOLDER_NAME, flip_path)
+        return os.path.exists(full_path)
+    
+    def get_flip_text_from_path(self, flip_path: str) -> str | None:
+        full_path = os.path.join(c.SETUP_FOLDER, self.game_name, c.FLIPS_FOLDER_NAME, flip_path)
+        if not os.path.exists(full_path):
+            return None
+        with open(full_path, 'r') as file_obj:
+            return file_obj.read()
 
     
 def get_setup(setup_name: str) -> Setup | None:
@@ -74,7 +91,7 @@ def get_setup(setup_name: str) -> Setup | None:
         setup_to_return.flips_folder = os.path.join(c.SETUP_FOLDER, setup_name, c.FLIPS_FOLDER_NAME)
         return setup_to_return
     else:
-        return None
+        return None    
     
 def list_available_setups() -> list[str]:
     """

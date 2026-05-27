@@ -157,15 +157,37 @@ def ITA_ACTION() -> "ability.Action":
             ita_item_to_use = acting_player.ita_items.pop(0)
             to_post_string = text_of_quote + "\n\n"
             await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired an ITA at {target_player.username}!")
-            to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use)
+            to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use, acting_player.passives.offensive_ita_tags)
             if config.ita_ads:
                 to_post_string += "\n" + fam6.get_ita_ad()
             fol_interface.create_post(to_post_string)
             await modbot.resolve_current_deaths(gamestate=gamestate, during_night_death_flavor=False,
-                                      fix_votecount=True, hide_death_messages=True)
+                                      fix_votecount=False, hide_death_messages=True)
         else:
-            fol_interface.send_message("You do not have any more ITAs.", username=acting_player.username)
+            fol_interface.send_message("You do not have any more (non-silent) ITAs.", username=acting_player.username)
     return ability.Action(ita_function)
+
+def SILENT_ITA_ACTION() -> "ability.Action":
+    """
+    Returns a silent ITA action.
+    """
+    import discord_interface
+    import modbot
+    async def ita_function(acting_player: player.Player, gamestate, ability: ability.Ability, target_player: player.Player, text_of_quote: str):
+        if len(acting_player.silent_ita_items) != 0:
+            ita_item_to_use = acting_player.silent_ita_items.pop(0)
+            await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired a Silent ITA at {target_player.username}!")
+            to_post_string = "# A silent ITA rings out! \n"
+            to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use, acting_player.passives.offensive_ita_tags)
+            if config.ita_ads:
+                to_post_string += "\n" + fam6.get_ita_ad()
+            fol_interface.create_post(to_post_string)
+            await modbot.resolve_current_deaths(gamestate=gamestate, during_night_death_flavor=False,
+                                      fix_votecount=False, hide_death_messages=True)
+        else:
+            fol_interface.send_message("You do not have any silent ITAs.", username=acting_player.username)
+    return ability.Action(ita_function)
+
 
 def ITA_ABILITY() -> "ability.Ability":
     """
@@ -188,6 +210,125 @@ def ITA_ABILITY() -> "ability.Ability":
         action_types=[c.ITA],
         no_action_processed_post=True
     )
+
+def SILENT_ITA_ABILITY() -> "ability.Ability":
+    """
+    Returns a silent ITA ability.
+    """
+    return ability.Ability(
+        ability_name="Silent In-Thread Attack",
+        syntax_parser=syn.SyntaxParser("ITA", parameter_list=[syn.SYNTAX_PARSER_PLAYERNAME], include_whole_post=True),
+        action=SILENT_ITA_ACTION(),
+        submission_location=c.IN_PM,
+        is_instant=True,
+        ignore_action_deadline=False,
+        ability_restrictions=ability.AbilityRestrictions(shot_count=-1, 
+                                                         cooldown=0, 
+                                                         self_target_allowed=False, 
+                                                         ita_required=True, 
+                                                         day_required=True, 
+                                                         night_required=False),
+        ability_modifiers=ability.AbilityModifiers(is_ita=True),
+        action_types=[c.ITA],
+        no_action_processed_post=True
+    )
+
+def VIEW_ITAS_ACTION() -> "ability.Action":
+    """
+    Returns an action that allows the player to view their ITAs.
+    """
+    async def view_itas_func(acting_player: player.Player, gamestate, ability: ability.Ability):
+        string_to_send = '## Public ITAs:\n'
+        if len(acting_player.ita_items) == 0:
+            string_to_send += "You have no public ITAs. \n"
+        for i, ita_item in enumerate(acting_player.ita_items):
+            string_to_send += f"{i + 1}: {ita_item.identifier}\n"
+        string_to_send += '## Silent ITAs:\n'
+        if len(acting_player.silent_ita_items) == 0:
+            string_to_send += "You have no silent ITAs. \n"
+        for i, ita_item in enumerate(acting_player.silent_ita_items):
+            string_to_send += f"{i + 1}: {ita_item.identifier}\n"
+        fol_interface.send_message(string_to_send, username=acting_player.username)
+    return ability.Action(view_itas_func)
+
+def VIEW_ITAS_ABILITY() -> "ability.Ability":
+    """
+    Returns an ability that allows the player to view their ITAs.
+    """
+    return ability.Ability(
+        ability_name="View ITAs",
+        syntax_parser=syn.SyntaxParser("view", parameter_list=[]),
+        action=VIEW_ITAS_ACTION(),
+        submission_location=c.IN_PM,
+        is_instant=True,
+        ignore_action_deadline=True,
+        ability_restrictions=ability.AbilityRestrictions(shot_count=-1, 
+                                                         cooldown=0, 
+                                                         self_target_allowed=False, 
+                                                         ita_required=False, 
+                                                         day_required=False, 
+                                                         night_required=False),
+        ability_modifiers=ability.AbilityModifiers(is_ita=True),
+        action_types=[c.FALSE_ACTION],
+        no_action_processed_post=True
+    )
+
+def REORDER_ITAS_ACTION(silent_itas: bool) -> "ability.Action":
+    async def reorder_itas(acting_player: player.Player, gamestate, ability: ability.Ability, index_1: int, index_2: int):
+        # Note: inputs are 1-indexed so we fix that here
+        index_1 -= 1
+        index_2 -= 1
+        player_obj = acting_player
+        collection_to_modify = player_obj.silent_ita_items if silent_itas else player_obj.ita_items
+        if index_1 < 0 or index_1 >= len(collection_to_modify):
+            fol_interface.send_message(f"Index {index_1 + 1} is out of range.", acting_player.username)
+            return
+        if index_2 < 0 or index_2 >= len(collection_to_modify):
+            fol_interface.send_message(f"Index {index_2 + 1} is out of range.", acting_player.username)
+            return
+        if index_1 == index_2:
+            fol_interface.send_message(f"The indices are the same, so this command would have no effect.", acting_player.username)
+            return
+        item_at_index_1 = collection_to_modify[index_1]
+        collection_to_modify[index_1] = collection_to_modify[index_2]
+        collection_to_modify[index_2] = item_at_index_1
+        fol_interface.send_message(f"Successfully modified ITA order.", acting_player.username)
+    return ability.Action(reorder_itas)
+
+def REORDER_ITAS_ABILITY() -> "ability.Ability":
+    return ability.Ability(
+        ability_name="Reorder ITAs",
+        syntax_parser=syn.SyntaxParser(command_name="reorder",
+                                       parameter_list=[syn.SYNTAX_PARSER_NONNEGATIVE_INT, syn.SYNTAX_PARSER_NONNEGATIVE_INT]),
+        action=REORDER_ITAS_ACTION(silent_itas=False),
+        submission_location=c.IN_PM,
+        is_instant=True,
+        ability_restrictions=ability.AbilityRestrictions(shot_count=-1,
+                                                         cooldown=0,
+                                                         night_required=False),
+        ability_modifiers=ability.AbilityModifiers(),
+        action_types=[c.FALSE_ACTION],
+        ignore_action_deadline=True,
+        no_action_processed_post=True
+    )
+
+def REORDER_ITAS_ABILITY_SILENT() -> "ability.Ability":
+    return ability.Ability(
+        ability_name="Reorder ITAs",
+        syntax_parser=syn.SyntaxParser(command_name="reorderSilent",
+                                       parameter_list=[syn.SYNTAX_PARSER_NONNEGATIVE_INT, syn.SYNTAX_PARSER_NONNEGATIVE_INT]),
+        action=REORDER_ITAS_ACTION(silent_itas=True),
+        submission_location=c.IN_PM,
+        is_instant=True,
+        ability_restrictions=ability.AbilityRestrictions(shot_count=-1,
+                                                         cooldown=0,
+                                                         night_required=False),
+        ability_modifiers=ability.AbilityModifiers(),
+        action_types=[c.FALSE_ACTION],
+        ignore_action_deadline=True,
+        no_action_processed_post=True
+    )
+
 
 
 

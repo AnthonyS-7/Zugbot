@@ -37,6 +37,8 @@ class SyntaxParser:
                 this_parameter = modbot.gamestate.get_player_object_living_players_only(this_parameter)
                 if this_parameter is None:
                     raise ParsingException("This player does not exist!")
+            elif self.parameter_list[num] == SYNTAX_PARSER_NONNEGATIVE_INT:
+                this_parameter = int(this_parameter)
             final_result.append(this_parameter)
         if self.include_whole_post:
             final_result.append(post.quoteString())

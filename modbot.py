@@ -108,11 +108,15 @@ def process_nightkill(nightkill_username: str, gamestate: game_state.GameState):
     - nightkill_username - The username of the player to be nightkilled; must be valid.
     - gamestate - The current gamestate
     """
+    if config.disable_nightkill:
+        return
     player_object = gamestate.get_player_object_living_players_only(nightkill_username)
     assert player_object is not None
     player_object.take_damage(a.AbilityModifiers(damage_amount=100)) # TODO: allow modifiers for the factional??
 
 def process_elimination(eliminated_player_username: str, gamestate: game_state.GameState, was_tie: bool):
+    if config.disable_elimination:
+        return
     flip = get_flip(eliminated_player_username, gamestate)
     gamestate.process_elimination(eliminated_player_username)
     print(f"Day {gamestate.phase_count} has just ended.")
@@ -379,6 +383,15 @@ def process_substitution_for_mafia_and_player_lists_and_nightkill(current_player
     del capitalization_fixer[current_player.lower()]
     capitalization_fixer[new_player.lower()] = new_player
 
+def add_player_to_player_lists(new_player: str):
+    """
+    Corrects playerlist_usernames and capitalization_fixer to include the new player.
+    """
+    config.playerlist_usernames.append(new_player)
+    capitalization_fixer[new_player.lower()] = new_player
+
+
+
 
 async def wait_for_time(time_datetime: datetime.datetime):
     """
@@ -398,18 +411,31 @@ async def post_ita_window_announcements():
         return False
     while gamestate is None or game_started == False:
         await asyncio.sleep(2)
-    phase_start_time = get_phase_start_time()
-    ita_window_counter = 1
-    for ita_window_times in config.ita_windows:
-        ita_window_start_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["start"])
-        ita_window_end_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["end"])
-        await wait_for_time(ita_window_start_time)
-        fol_interface.create_post(f"# ITA Window {ita_window_counter} has begun! Use /ITA [playername] @Zugbot to shoot. \n"
-                                  "- You *must* ping Zugbot for your shot to be registered. \n" \
-                                  "- Hosts will post flips manually. \n")
-        await wait_for_time(ita_window_end_time)
-        fol_interface.create_post(f"# ITA Window {ita_window_counter} has ended!")
-        ita_window_counter += 1
+    current_phase = gamestate.phase_count - 1
+    while True:
+        if gamestate.is_day == False:
+            night_end_time = get_phase_start_time() + datetime.timedelta(minutes=config.night_length)
+            await wait_for_time(night_end_time)
+        if gamestate.is_day:
+            if current_phase == gamestate.phase_count:
+                await asyncio.sleep(15)
+                continue
+            current_phase = gamestate.phase_count
+            phase_start_time = get_phase_start_time()
+            ita_window_counter = 1
+            for ita_window_times in config.ita_windows:
+                ita_window_start_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["start"])
+                ita_window_end_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["end"])
+                await wait_for_time(ita_window_start_time)
+                fol_interface.create_post(f"# ITA Window {ita_window_counter} has begun! Use /ITA [playername] @Zugbot to shoot. \n"
+                                        "- You *must* ping Zugbot for your shot to be registered. \n" \
+                                        "- Hosts will post flips manually. \n")
+                await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} start announcement.")
+                await wait_for_time(ita_window_end_time)
+                fol_interface.create_post(f"# ITA Window {ita_window_counter} has ended!")
+                await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} end announcement.")
+                ita_window_counter += 1
+            
 
 
 async def start_game() -> bool:
@@ -587,6 +613,7 @@ async def run_modbot():
                 break
             await fol_interface.close_or_open_thread(close=True)
             eliminated_player, was_tie = await fol_interface.decide_elimination()
+            await discord_interface.send_message_to_hosting_discord("# Day has ended.")
             await resolve_day_or_night_end_actions(eliminated_player, gamestate, was_tie, is_day=True)
         else: #going into this, gamestate should be night and have the eliminated player dead
             actions_close_time, thread_open_time = await do_night_start(game_start_time=game_start_time, gamestate=gamestate)
@@ -597,6 +624,7 @@ async def run_modbot():
                 break
             if not gamestate.is_valid_nightkill(nightkill_choice):
                 nightkill_choice = gamestate.get_random_town()
+            await discord_interface.send_message_to_hosting_discord("# Night has ended.")
             await resolve_day_or_night_end_actions(elimination_or_nightkill=nightkill_choice, gamestate=gamestate, was_tie=False, is_day=False)
 
     await announce_game_end(gamestate)

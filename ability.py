@@ -83,14 +83,12 @@ class AbilityModifiers:
                  damage_amount=0,
                  target_focus=0, # TODO: should this be in here? unsure.
                  is_ita=False,
-                 ita_tags: None | dict[str, int] = None,
                  ) -> None:
         self.invest_power = invest_power
         self.protection_level = protection_level
         self.target_focus = target_focus
         self.damage_amount = damage_amount
         self.is_ita = is_ita
-        self.ita_tags = ita_tags if ita_tags is not None else dict()
 
 def process_redirects(action_parameters: list, ability: 'a.Ability', no_redirects=False) -> list:
     """

@@ -18,6 +18,8 @@ class GamestateException(Exception):
 
 class GameState:
     def __init__(self, players: list["p.Player"], is_day: bool, phase_count: int, wincon_is_parity: bool) -> None:
+        print(f"Created Gamestate object!")
+        print(list(map(lambda x : x.username, players)))
         self.original_players = players
         self.current_players = [player for player in players]
         self.is_day = is_day
@@ -26,6 +28,10 @@ class GameState:
         # self.game_log = [] if game_log == None else game_log
         self.nomination_counter = 0 # Number of nominations done so far (for BOTC only)
         self.nominations_open = True # If nominations are currently open (for BOTC only)
+
+    def add_player(self, new_player: "p.Player") -> None:
+        self.original_players.append(new_player)
+        self.current_players.append(new_player)
         
     def get_random_town(self) -> str:
         """
@@ -76,12 +82,15 @@ class GameState:
 
         At the time of writing, this method is equivalent to process_elimation, but in the future
         there may be ways to get out of an elimination, whereas modkills can never be prevented.
+
+        This also sets the health of the modkilled player to 0.
         """
         if not self.player_exists(player):
             return False
         for num, possible_modkilled_player in enumerate(self.current_players):
             if player.lower() == possible_modkilled_player.username.lower():
                 self.current_players.pop(num)
+                possible_modkilled_player.health = 0
         return True
         
     def count_players_of_alignment(self, alignment: Alignment):

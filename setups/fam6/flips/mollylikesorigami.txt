@@ -1,0 +1,20 @@
+ | OFFICIAL ROLE DOCUMENT, DO NOT QUOTE/SCREENSHOT  |
+ | :-: | 
+ |  ![mollylikesorigami\|100x100](https://www.fortressoflies.com/user_avatar/www.fortressoflies.com/mollylikesorigami/120/2_2.png) <br> **mollylikesorigiami** <br> [color=red][b]Mafia Origami Liker[/b][/color] <br><br> *"i like origami"*<br><br>*You like origami. Your day job is in construction. I'm not really sure why the Council lets you build homes out of paper, but the sooner they fall down, the sooner we can all go home, and you've taken it upon yourself to accelerate that process by aiding the Saboteurs with your attack origami: with deliberate, precise strikes, you can "borrow" Nyaluminum from passersby and use it to aid your cause.*
+
+[center]
+
+**i like origami** --- *Passive*
+At the start of each day, learn a target post number. If you or an allied player makes the post of that number, you gain 1 Nyaluminum. If the target post is made by any host account, the next post becomes the target.
+
+**Kite Base** --- *Passive*
+At the start of each day, gain 1 Nyaluminum.
+
+**Paper Folding** --- *Night*
+Each night, use up to 3 of these abilities. Each ability costs 1 Nyaluminum to use. You may not repeat usage of an ability if you could instead use an ability you've used fewer times.
+- **Rabbit Ear Fold:** Give two target players 1 Nyaluminum each.
+- **Petal Fold:** Steal 10 Health from target player (they take 10 damage, you gain 10 Health).
+- **Squash Fold:** Fake poison target player. If they are unallied to you, also deal 15 damage to them.
+- **Pleat Fold:** Steal up to 2 Nyaluminum from target player.
+- **Paper Lizard:** You must use all of your other *Folds* before each usage of *Paper Lizard*. Poison target player.
+[/center]

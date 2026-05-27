@@ -44,15 +44,12 @@ async def start_all_components():
         if not config.is_turbo:
             start_discord_bot = asyncio.create_task(discord_interface.start_discord_bot())
             tasks.append(start_discord_bot)
-            await start_discord_bot
         if config.do_votecounts:
             start_vc_bot = asyncio.create_task(modbot.run_vc_bot())
             tasks.append(start_vc_bot)
-            await start_vc_bot
         if config.include_itas:
             start_ita_window_poster = asyncio.create_task(modbot.post_ita_window_announcements())
             tasks.append(start_ita_window_poster)
-            await start_ita_window_poster
         await start_control
         await start_action_listener
         await start_fol_poster

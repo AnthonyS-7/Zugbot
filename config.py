@@ -56,8 +56,11 @@ with open('config.yaml', 'r') as config_file:
 
     send_messages_to_hosting_discord: bool = config_dict['send_messages_to_hosting_discord']
     hosting_discord_channel_id_for_output: int = config_dict['hosting_discord_channel_id_for_output']
+    hosting_discord_guild_id: int = config_dict['hosting_discord_guild_id']
 
     do_not_flip: bool = config_dict['do_not_flip']
+    allow_closing_and_opening_threads: bool = config_dict['allow_closing_and_opening_threads']
+    disable_day_and_night_start_announcements: bool = config_dict['disable_day_and_night_start_announcements']
 
     # Below this line is field from the setup loaded here
     game_name = setup_object.game_name
@@ -71,6 +74,9 @@ with open('config.yaml', 'r') as config_file:
     no_exe_wins_ties = setup_object.no_exe_wins_ties
     is_botf = setup_object.is_botf
     flips_folder = setup_object.flips_folder
+    disable_elimination = setup_object.disable_elimination
+    disable_nightkill = setup_object.disable_nightkill
+    include_teammates_in_role_pm = setup_object.include_teammates_in_role_pm
 
     # This setting is enabled in turbos.py
     is_turbo = False
