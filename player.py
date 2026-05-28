@@ -215,11 +215,11 @@ class Player:
                                                     # In other words, this is part of how multitasking (or the lack thereof)
                                                     # is handled.
         
-    def get_redirect(self, target_focus: int) -> 'Player':
+    def get_redirect(self, target_focus: int, gamestate: 'game_state.GameState') -> 'Player':
         """
         Given target_focus, returns the player the action should target.
         """
-        if self.redirection is None or target_focus >= self.redirection.redirection_strength:
+        if self.redirection is None or target_focus >= self.redirection.redirection_strength or (not gamestate.player_exists(self.redirection.redirect_player.username)):
             return self
         return self.redirection.redirect_player
     

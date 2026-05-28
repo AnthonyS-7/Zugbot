@@ -169,7 +169,7 @@ async def resolve_day_or_night_end_actions(elimination_or_nightkill: str, gamest
             exe_or_nightkill_processed = True
         if ability is None: # This happens only for the filler ability to guarantee the elimination is processed.
             continue        # Since it isn't a real ability, it must be skipped; the earlier if statement does not guarantee it's skipped
-        parameters[2] = a.process_redirects(parameters[2], ability) #parameters[2] is the output of the syntax parser
+        parameters[2] = a.process_redirects(parameters[2], ability, gamestate) #parameters[2] is the output of the syntax parser
         acting_player = parameters[0]
         assert type(acting_player) == p.Player
         assert type(parameters[1]) == game_state.GameState
@@ -407,8 +407,6 @@ async def wait_for_time(time_datetime: datetime.datetime):
     await asyncio.sleep(seconds_to_sleep)
 
 async def post_ita_window_announcements():
-    if not config.include_itas:
-        return False
     while gamestate is None or game_started == False:
         await asyncio.sleep(2)
     current_phase = gamestate.phase_count - 1
@@ -427,13 +425,15 @@ async def post_ita_window_announcements():
                 ita_window_start_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["start"])
                 ita_window_end_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["end"])
                 await wait_for_time(ita_window_start_time)
-                fol_interface.create_post(f"# ITA Window {ita_window_counter} has begun! Use /ITA [playername] @Zugbot to shoot. \n"
-                                        "- You *must* ping Zugbot for your shot to be registered. \n" \
-                                        "- Hosts will post flips manually. \n")
-                await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} start announcement.")
+                if config.include_itas:
+                    fol_interface.create_post(f"# ITA Window {ita_window_counter} has begun! Use /ITA [playername] @Zugbot to shoot. \n"
+                                            "- You *must* ping Zugbot for your shot to be registered. \n" \
+                                            "- Hosts will post flips manually. \n")
+                    await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} start announcement.")
                 await wait_for_time(ita_window_end_time)
-                fol_interface.create_post(f"# ITA Window {ita_window_counter} has ended!")
-                await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} end announcement.")
+                if config.include_itas:
+                    fol_interface.create_post(f"# ITA Window {ita_window_counter} has ended!")
+                    await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} end announcement.")
                 ita_window_counter += 1
             
 
@@ -475,6 +475,10 @@ async def start_game() -> bool:
     if config.rand_roles:
         random.seed(time.time())
         random.shuffle(rolelist)
+
+    if len(config.playerlist_usernames) != config.playercount:
+        print(f"The playercount of this setup is {config.playercount}, but there are {len(config.playerlist_usernames)} players in the playerlist.")
+        return False
 
     playerlist_player_objects : list['p.Player'] = []
 

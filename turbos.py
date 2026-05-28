@@ -12,8 +12,7 @@ import main
 import ability
 import post as p
 import syntax_parser_standard as syn
-from role_standards import verify_standard as ver
-import roles
+import roles_folder.roles_exceptions as roles
 import inspect
 import setup
 

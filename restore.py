@@ -4,7 +4,7 @@ import game_state
 import config
 import player
 import ability
-
+import traceback
 
 import json
 import dill
@@ -111,10 +111,13 @@ def restore_individual_variables(json_input: dict):
     modbot.game_end_announced_already = json_input["modbot.game_end_announced_already"]
     modbot.all_abilities_are_disabled = json_input["modbot.all_abilities_are_disabled"]
     modbot.game_restored_from_file = True
+    modbot.capitalization_fixer = json_input["modbot.capitalization_fixer"]
     config.game_start_time = json_input["config.game_start_time"]
     config.ita_base_damage = json_input["config.ita_base_damage"]
     config.playerlist_usernames = json_input["config.playerlist_usernames"]
     config.ita_ads = json_input["config.ita_ads"]
+    config.include_itas = json_input["config.include_itas"]
+
 
 def save_json():
     to_save = {
@@ -133,10 +136,12 @@ def save_json():
         "modbot.action_submission_open" : modbot.action_submission_open,
         "modbot.game_end_announced_already" : modbot.game_end_announced_already,
         "modbot.all_abilities_are_disabled" : modbot.all_abilities_are_disabled,
+        "modbot.capitalization_fixer" : modbot.capitalization_fixer,
         "config.game_start_time" : config.game_start_time,
         "config.ita_base_damage" : config.ita_base_damage,
         "config.playerlist_usernames" : config.playerlist_usernames,
-        "config.ita_ads" : config.ita_ads
+        "config.ita_ads" : config.ita_ads,
+        "config.include_itas" : config.include_itas
     }
     json_file = open(GAMESTATE_JSON_PATH, 'w')
     json.dump(to_save, json_file, indent=4, default=queue_encoder)
@@ -147,6 +152,8 @@ def save_pickle():
     global consecutive_failed_saves
     try:
         gamestate_file = open(GAMESTATE_PICKLE_PATH, 'bw')
+        assert modbot.gamestate is not None
+        find_unpicklable(ability.all_abilities)
         dill.dump((modbot.gamestate, ability.all_abilities), gamestate_file)
         gamestate_file.close()
         consecutive_failed_saves = 0
@@ -154,8 +161,52 @@ def save_pickle():
         print(f"While saving, ran into a TypeError, likely because something was in progress during the save.")
         consecutive_failed_saves += 1
         print(f"{consecutive_failed_saves=}")
+        print(traceback.format_exc())
 
-    
+def find_unpicklable(obj, path="root", visited=None):
+    if visited is None:
+        visited = set()
+    obj_id = id(obj)
+    if obj_id in visited:
+        return
+    visited.add(obj_id)
+
+    # Try pickling the leaf — if it works, no need to drill deeper
+    try:
+        dill.dumps(obj)
+        return
+    except Exception:
+        pass
+
+    # Get all attributes (both __dict__ and __slots__)
+    attrs = {}
+    if hasattr(obj, '__dict__'):
+        attrs.update(obj.__dict__)
+    if hasattr(obj, '__slots__'):
+        for slot in obj.__slots__:
+            if hasattr(obj, slot):
+                attrs[slot] = getattr(obj, slot)
+
+    if isinstance(obj, dict):
+        items = obj.items()
+    elif isinstance(obj, (list, tuple)):
+        items = enumerate(obj)
+    else:
+        items = attrs.items()
+
+    found_child_error = False
+    for k, v in items:
+        child_path = f"{path}.{k}" if isinstance(k, str) else f"{path}[{k}]"
+        try:
+            dill.dumps(v)
+        except Exception:
+            found_child_error = True
+            find_unpicklable(v, child_path, visited)
+
+    # If nothing inside failed individually but the object itself fails,
+    # it's likely a C-level object with no inspectable internals
+    if not found_child_error:
+        print(f"LEAF (unpicklable, cannot drill further): {path} = {type(obj)} — {repr(obj)[:100]}")
 
 # def load_everything():
 #     gamestate_json = open(GAMESTATE_JSON_PATH, 'r')
@@ -180,6 +231,7 @@ def load_everything_and_convert_to_game():
     gamestate_object, all_abilities = dill.load(gamestate_file)
     modbot.gamestate = gamestate_object
     ability.all_abilities = all_abilities
+    modbot.game_started = True
 
     # while(True):
     #     command_to_run = input("REMOVE THIS LATER")
@@ -189,7 +241,7 @@ def load_everything_and_convert_to_game():
     #         print(e)
 
     import main # here to avoid circular import
-    asyncio.run(main.start_all_components())
+    asyncio.run(main.start_all_components(reset_globals=False))
 
 
 if __name__ == "__main__":

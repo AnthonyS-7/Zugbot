@@ -16,9 +16,10 @@ import setup
 
 tasks: list[asyncio.Task] = []
 
-async def start_all_components():
+async def start_all_components(reset_globals=True):
     global tasks
-    modbot.reset_globals_to_defaults()
+    if reset_globals:
+        modbot.reset_globals_to_defaults()
     if config.crash_on_exception:
         async with asyncio.TaskGroup() as group:
             start_control = group.create_task(modbot.run_modbot())

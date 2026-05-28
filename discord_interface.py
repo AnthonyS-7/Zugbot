@@ -73,6 +73,11 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             feedback_to_send[player_obj] = feedback_string
             await message.channel.send(f"Changed feedback of player {player_name_corrected} to: \n ```\n{feedback_string}\n```")
 
+    @client.tree.command(name="toggle_itas", description="Toggle ITAs on or off.", guild=discord.Object(id=config.hosting_discord_guild_id))
+    async def toggle_itas(interaction: discord.Interaction):
+        config.include_itas = not config.include_itas
+        await interaction.response.send_message(f"ITAs have been turned {'on' if config.include_itas else 'off'}.")
+
     @client.tree.command(name="feedback_send", description="Send out all feedback.", guild=discord.Object(id=config.hosting_discord_guild_id))
     async def feedback_send(interaction: discord.Interaction):
         global feedback_to_send
@@ -428,6 +433,7 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
         if modbot.gamestate is None:
             await interaction.response.send_message(GAMESTATE_NONE_ERROR_MESSAGE)
             return None
+        await interaction.response.defer()
         table_headers = ["Player With ITA", "Identifier", "Index", "Damage", 
                         "Can Crit?", "Is Silent?"] if interaction.guild_id == config.hosting_discord_guild_id else [
                         "Player With ITA", "Identifier", "Index", "Is Silent?"
@@ -451,7 +457,7 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
         else:
             string_to_send = "Note: This view shows the information wolfchat has. Only hosts can get the full view (by running this command in hostcord).\n"
         string_to_send += make_table(table_headers, table_rows)
-        await interaction.response.send_message(string_to_send)
+        await interaction.followup.send(string_to_send)
 
     @client.tree.command(name="remove_ita", description="Remove an ITA from a player.", guild=discord.Object(id=config.hosting_discord_guild_id))
     @app_commands.describe(player_username="The player whose ITA is being removed", 

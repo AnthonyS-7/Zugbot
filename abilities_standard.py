@@ -146,34 +146,52 @@ def IC_ABILITY(allowed_cycles: list[int] | Callable[[int], bool]) -> "ability.Ab
                                                          shot_count=1, allowed_cycles=allowed_cycles)
     )
 
-def ITA_ACTION() -> "ability.Action":
-    """
-    Returns an ITA action.
-    """
-    import discord_interface
-    import modbot
-    async def ita_function(acting_player: player.Player, gamestate, ability: ability.Ability, target_player: player.Player, text_of_quote: str):
-        if len(acting_player.ita_items) != 0:
-            ita_item_to_use = acting_player.ita_items.pop(0)
-            to_post_string = text_of_quote + "\n\n"
-            await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired an ITA at {target_player.username}!")
-            to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use, acting_player.passives.offensive_ita_tags)
-            if config.ita_ads:
-                to_post_string += "\n" + fam6.get_ita_ad()
-            fol_interface.create_post(to_post_string)
-            await modbot.resolve_current_deaths(gamestate=gamestate, during_night_death_flavor=False,
-                                      fix_votecount=False, hide_death_messages=True)
-        else:
-            fol_interface.send_message("You do not have any more (non-silent) ITAs.", username=acting_player.username)
-    return ability.Action(ita_function)
+# def ITA_ACTION() -> "ability.Action":
+#     """
+#     Returns an ITA action.
+#     """
+#     import discord_interface
+#     import modbot
+#     async def ita_function(acting_player: player.Player, gamestate, ability: ability.Ability, target_player: player.Player, text_of_quote: str):
+#         if len(acting_player.ita_items) != 0:
+#             ita_item_to_use = acting_player.ita_items.pop(0)
+#             to_post_string = text_of_quote + "\n\n"
+#             await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired an ITA at {target_player.username}!")
+#             to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use, acting_player.passives.offensive_ita_tags)
+#             if config.ita_ads:
+#                 to_post_string += "\n" + fam6.get_ita_ad()
+#             fol_interface.create_post(to_post_string)
+#             await modbot.resolve_current_deaths(gamestate=gamestate, during_night_death_flavor=False,
+#                                       fix_votecount=False, hide_death_messages=True)
+#         else:
+#             fol_interface.send_message("You do not have any more (non-silent) ITAs.", username=acting_player.username)
+#     return ability.Action(ita_function)
 
-def SILENT_ITA_ACTION() -> "ability.Action":
-    """
-    Returns a silent ITA action.
-    """
-    import discord_interface
-    import modbot
-    async def ita_function(acting_player: player.Player, gamestate, ability: ability.Ability, target_player: player.Player, text_of_quote: str):
+# def SILENT_ITA_ACTION() -> "ability.Action":
+#     """
+#     Returns a silent ITA action.
+#     """
+#     import discord_interface
+#     import modbot
+#     async def ita_function(acting_player: player.Player, gamestate, ability: ability.Ability, target_player: player.Player, text_of_quote: str):
+#         if len(acting_player.silent_ita_items) != 0:
+#             ita_item_to_use = acting_player.silent_ita_items.pop(0)
+#             await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired a Silent ITA at {target_player.username}!")
+#             to_post_string = "# A silent ITA rings out! \n"
+#             to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use, acting_player.passives.offensive_ita_tags)
+#             if config.ita_ads:
+#                 to_post_string += "\n" + fam6.get_ita_ad()
+#             fol_interface.create_post(to_post_string)
+#             await modbot.resolve_current_deaths(gamestate=gamestate, during_night_death_flavor=False,
+#                                       fix_votecount=False, hide_death_messages=True)
+#         else:
+#             fol_interface.send_message("You do not have any silent ITAs.", username=acting_player.username)
+#     return ability.Action(ita_function)
+
+class _SilentITAFunction:
+    async def __call__(self, acting_player: 'player.Player', gamestate, ability: 'ability.Ability', target_player: 'player.Player', text_of_quote: str):
+        import discord_interface
+        import modbot
         if len(acting_player.silent_ita_items) != 0:
             ita_item_to_use = acting_player.silent_ita_items.pop(0)
             await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired a Silent ITA at {target_player.username}!")
@@ -186,8 +204,29 @@ def SILENT_ITA_ACTION() -> "ability.Action":
                                       fix_votecount=False, hide_death_messages=True)
         else:
             fol_interface.send_message("You do not have any silent ITAs.", username=acting_player.username)
-    return ability.Action(ita_function)
 
+class _ITAFunction:
+    async def __call__(self, acting_player: 'player.Player', gamestate, ability: 'ability.Ability', target_player: 'player.Player', text_of_quote: str):
+        import discord_interface
+        import modbot
+        if len(acting_player.ita_items) != 0:
+            ita_item_to_use = acting_player.ita_items.pop(0)
+            to_post_string = text_of_quote + "\n\n"
+            await discord_interface.send_message_to_hosting_discord(f"## {acting_player.username} fired an ITA at {target_player.username}!")
+            to_post_string += await target_player.take_ita_damage(ability.ability_modifiers, ita_item_to_use, acting_player.passives.offensive_ita_tags)
+            if config.ita_ads:
+                to_post_string += "\n" + fam6.get_ita_ad()
+            fol_interface.create_post(to_post_string)
+            await modbot.resolve_current_deaths(gamestate=gamestate, during_night_death_flavor=False,
+                                      fix_votecount=False, hide_death_messages=True)
+        else:
+            fol_interface.send_message("You do not have any more (non-silent) ITAs.", username=acting_player.username)
+
+def ITA_ACTION() -> "ability.Action":
+    return ability.Action(_ITAFunction())
+
+def SILENT_ITA_ACTION() -> "ability.Action":
+    return ability.Action(_SilentITAFunction())
 
 def ITA_ABILITY() -> "ability.Ability":
     """

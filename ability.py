@@ -43,6 +43,14 @@ async def _add(action_1: 'Action', action_2: 'Action', player_object: 'pl.Player
     await action_1.run_action(player_object, gamestate, ability, *args)
     await action_2.run_action(player_object, gamestate, ability, *args)
 
+class _CombinedAction:
+    def __init__(self, action_1, action_2):
+        self.action_1 = action_1
+        self.action_2 = action_2
+    async def __call__(self, player_object, gamestate, ability, *args):
+        await self.action_1.run_action(player_object, gamestate, ability, *args)
+        await self.action_2.run_action(player_object, gamestate, ability, *args)
+
 class Action:
     """
     This is a wrapper class for the functions that execute actions. This wrapper allows adding functions together with '+', 
@@ -52,8 +60,9 @@ class Action:
         self.use_action = use_action
 
     def __add__(self, other: 'Action'):
-        new_use_action = lambda player_object, gamestate, ability, *args : _add(self, other, player_object, gamestate, ability, *args)
-        return Action(new_use_action)
+        return Action(_CombinedAction(self, other))
+        # new_use_action = lambda player_object, gamestate, ability, *args : _add(self, other, player_object, gamestate, ability, *args)
+        # return Action(new_use_action)
 
     async def run_action(self, player_object: 'pl.Player', gamestate: 'game_state.GameState', ability: 'Ability', *args):
         """
@@ -90,7 +99,7 @@ class AbilityModifiers:
         self.damage_amount = damage_amount
         self.is_ita = is_ita
 
-def process_redirects(action_parameters: list, ability: 'a.Ability', no_redirects=False) -> list:
+def process_redirects(action_parameters: list, ability: 'a.Ability', gamestate: 'game_state.GameState', no_redirects=False) -> list:
     """
     This method takes the parameters for an action, and an Ability, and redirects the action's target(s) if needed.
 
@@ -110,7 +119,7 @@ def process_redirects(action_parameters: list, ability: 'a.Ability', no_redirect
         no_more_redirects = False
         while not no_more_redirects:
             try:
-                next_player = current_player.get_redirect(current_focus)
+                next_player = current_player.get_redirect(current_focus, gamestate)
                 current_focus += current_player.get_redirect_focus_increase()
                 no_more_redirects = current_player == next_player
                 current_player = next_player
@@ -179,7 +188,7 @@ class Ability:
             print(e.args)
             return
         print(f"Input for {self.ability_name} parsed successfully; the parameters are {parameters}")
-        parameters = process_redirects(parameters, self, no_redirects=True)
+        parameters = process_redirects(parameters, self, gamestate, no_redirects=True)
         print(f"Running instant action with {len(parameters)} parameters, plus the gamestate")
         await self.action.run_action(None, gamestate, self, *parameters) # type: ignore
         self.use_count += 1
@@ -245,7 +254,7 @@ class Ability:
             fol_interface.create_post(string_to_post="Action processed.", topic_id_parameter=post.topicNumber, priority=5)
 
         if self.is_instant and (self.willpower_required is None or player.willpower >= self.willpower_required):
-            parameters = process_redirects(parameters, self, no_redirects=is_host_post)
+            parameters = process_redirects(parameters, self, gamestate, no_redirects=is_host_post)
             print(f"Running instant action with {len(parameters)} parameters, plus the player and gamestate and ability")
 
             await self.action.run_action(player, gamestate, self, *parameters) # type: ignore
@@ -253,6 +262,14 @@ class Ability:
         else:
             player.record_action(self.id, parameters)
 
+# Below functions/classes are used in AbilityRestrictions
+def _default_cycle_restriction(cycle_num: int):
+    return cycle_num >= 1
+class _ListCycleCheck:
+    def __init__(self, allowed):
+        self.allowed = allowed
+    def __call__(self, x):
+        return x in self.allowed
 
 
 class AbilityRestrictions:
@@ -311,9 +328,9 @@ class AbilityRestrictions:
         self.night_required = night_required
         self.ita_required = ita_required
         if allowed_cycles is None:
-            self.check_if_cycle_is_allowed: Callable[[int], bool] = lambda x : x >= 1
+            self.check_if_cycle_is_allowed: Callable[[int], bool] = _default_cycle_restriction
         elif type(allowed_cycles) == list:
-            self.check_if_cycle_is_allowed: Callable[[int], bool] = lambda x : (x in allowed_cycles) # type: ignore
+            self.check_if_cycle_is_allowed: Callable[[int], bool] = _ListCycleCheck(allowed_cycles)
         else:
             self.check_if_cycle_is_allowed: Callable[[int], bool] = allowed_cycles # type: ignore
 
