@@ -727,7 +727,7 @@ def post_cache_elimination(eliminated_player: str, was_tie: bool, flip: str, liv
     #create_post(string_to_post, topic_id)
 
 def announce_night_start(phase_number: int, living_players: list[str]):
-    if config.disable_day_and_night_start_announcements:
+    if not config.disable_day_and_night_start_announcements:
         string_to_post = f"# Night {phase_number} begins now.\n"
         string_to_post += ping_string(living_players=living_players, include_alive_tags=False)
         create_post(string_to_post, config.topic_id)

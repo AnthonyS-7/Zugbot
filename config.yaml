@@ -33,8 +33,8 @@ topic_id: 9145 # The topic ID of the game thread
 mafia_discord_link: ''
 rand_roles: true # Whether to rand roles. Set to true in games! This option is here for easier debugging.
 
-day_length: 60 # In minutes
-night_length: 10 # In minutes
+day_length: 5 # In minutes
+night_length: 2 # In minutes
 action_deadline: 1 # Actions can no longer be submitted this many minutes before phase change. Should be at least 1.
 
 setup_name: 'fam6' # Must exactly match the name in the setups folder
@@ -42,9 +42,9 @@ setup_name: 'fam6' # Must exactly match the name in the setups folder
 include_itas: true # If true, ITA windows will exist.
 ita_windows: # Each number represents the number of minutes past SOD.
     - start: 1
-      end: 20
-    - start: 30
-      end: 40
+      end: 2
+    - start: 3
+      end: 4
 ita_base_damage: 10 # The base damage of ITAs
 ita_ads: false # Whether to have 'ads' in ITAs.
 

@@ -413,6 +413,7 @@ async def post_ita_window_announcements():
     while True:
         if gamestate.is_day == False:
             night_end_time = get_phase_start_time() + datetime.timedelta(minutes=config.night_length)
+            await asyncio.sleep(15)
             await wait_for_time(night_end_time)
         if gamestate.is_day:
             if current_phase == gamestate.phase_count:
