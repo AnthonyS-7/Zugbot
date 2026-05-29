@@ -13,7 +13,6 @@ import types
 
 import re
 import roles_folder.roles_exceptions as r
-import roles_folder.roles_templates as rt
 import syntax_parser_standard as syn
 import ability
 import player
@@ -40,20 +39,20 @@ async def do_substitution(player_object: 'player.Player | None', gamestate: "gam
 
     if gamestate.player_exists(new_player, count_dead_as_existing=True):
         print(f"{new_player} is already in the game, so they cannot be added.")
-        return
+        return f"{new_player} is already in the game, so they cannot be added."
     
     if new_player.lower() == config.username.lower():
         print("Attempted to sub the bot into the game! This is not allowed.")
-        return
+        return "Attempted to sub the bot into the game! This is not allowed."
     
     if new_player.lower() in config.host_usernames:
         print("Cannot put hosts in the game.")
-        return
+        return "Cannot put hosts in the game."
 
     if not successful_name_resolution and not fol_interface.user_exists(new_player):
         # successful name resolution implies the user exists, so this is here to save time.
         print(f"Attempted to add {new_player} to the game, but they are not a valid FoL user. If this is in error, try again.")
-        return
+        return f"Attempted to add {new_player} to the game, but they are not a valid FoL user. If this is in error, try again."
 
     if not gamestate.substitute_player(current_username=current_player_username, new_username=new_player):
         print("Error when substituting player! Things are likely broken in the gamestate object.")
@@ -70,6 +69,7 @@ async def do_substitution(player_object: 'player.Player | None', gamestate: "gam
     await fol_interface.post_votecount(replacements=[(current_player_username, new_player)], nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations(),)
 
     gamestate.print_playerlists()
+    return f"Sucessfully substituted in {new_player} for {current_player_username}."
 
 async def do_modkill(player_object: 'None | player.Player', gamestate: "game_state.GameState", ability, modkilled_player: 'player.Player'):
     global possible_modkill_name

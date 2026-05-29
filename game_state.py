@@ -70,7 +70,7 @@ class GameState:
         if self.player_exists(player):
             for num, possible_eliminated_player in enumerate(self.current_players):
                 if player.lower() == possible_eliminated_player.username.lower():
-                    self.current_players.pop(num)
+                    self.current_players.pop(num).health = 0
             return True
         return False
     
@@ -179,11 +179,14 @@ class GameState:
         print(f"{about_to_die_players=}")
         return about_to_die_players
 
-    def kill_about_to_die_players(self) -> None:
+    def sync_living_players(self) -> None:
         """
-        Removes any about-to-die players from the gamestate (ie, players are 0 or less health).
+        Ensure the players in self.original_players with positive health are in self.current_players, and the players
+        without positive health are not.
+
+        Should be called after any changes in player health.
         """
-        self.current_players = list(filter(lambda player : player.health > 0, self.current_players))
+        self.current_players = list(filter(lambda player : player.health > 0, self.original_players))
 
     def substitute_player(self, current_username: str, new_username: str) -> bool:
         """

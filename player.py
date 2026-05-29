@@ -282,7 +282,7 @@ class Player:
                 hosting_discord_feedback += f"ITA damage increased by {offensive_ita_tags[tag]} due to tag: {tag} \n"
                 damage += offensive_ita_tags[tag]
 
-        damage -= self.passives.flat_ita_resistance
+        damage = max(damage - self.passives.flat_ita_resistance, 0)
         if self.protection >= damage:
             self.protection -= damage
             damage = 0

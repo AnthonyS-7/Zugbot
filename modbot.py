@@ -206,7 +206,7 @@ async def resolve_current_deaths(gamestate: game_state.GameState, during_night_d
             fol_interface.add_death_to_cache(about_to_die_player, f"has died{' during the night' if during_night_death_flavor else ''}!\n", flip)
         fol_interface.send_message("# You have died.", about_to_die_player, priority=1)
 
-    gamestate.kill_about_to_die_players()
+    gamestate.sync_living_players()
 
 
     # if len(about_to_die_players) > 0:
@@ -261,7 +261,7 @@ def get_flip(player: str, gamestate: game_state.GameState, giving_role_pm=False)
     if not giving_role_pm and config.do_not_flip:
         return STAND_BY_FOR_FLIP
     flip_path = os.path.join(config.flips_folder, gamestate.get_flip_path(player))
-    with open(flip_path, 'r') as flip_file:
+    with open(flip_path, 'r', encoding='utf-8') as flip_file:
         return flip_file.read()
 
 async def give_role_pms(playerlist: list[str], gamestate: game_state.GameState):

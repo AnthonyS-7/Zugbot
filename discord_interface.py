@@ -73,6 +73,20 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             feedback_to_send[player_obj] = feedback_string
             await message.channel.send(f"Changed feedback of player {player_name_corrected} to: \n ```\n{feedback_string}\n```")
 
+    @client.tree.command(name="sub", description="Perform a substitution.", guild=discord.Object(id=config.hosting_discord_guild_id))
+    @app_commands.describe(current_player_username="The username of the player currently in the game.", new_player_username="The username of the person to sub into the game")
+    async def sub(interaction: discord.Interaction, current_player_username: str, new_player_username: str):
+        current_player_obj = await verify_player(interaction, current_player_username)
+        if current_player_obj is None:
+            return
+        if modbot.gamestate is None:
+            await interaction.response.send_message(GAMESTATE_NONE_ERROR_MESSAGE)
+            return
+        await interaction.response.defer()
+        from roles_folder import host
+        result = await host.do_substitution(None, modbot.gamestate, None, current_player_obj, new_player_username)
+        await interaction.followup.send(result)
+
     @client.tree.command(name="toggle_itas", description="Toggle ITAs on or off.", guild=discord.Object(id=config.hosting_discord_guild_id))
     async def toggle_itas(interaction: discord.Interaction):
         config.include_itas = not config.include_itas
@@ -323,10 +337,15 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     @client.tree.command(name="health", description="Change a player's health.", guild=discord.Object(id=config.hosting_discord_guild_id))
     @app_commands.describe(player_username="The player whose state is being modified", value="The new health value")
     async def health(interaction: discord.Interaction, player_username: str, value: int):
+        if modbot.gamestate is None:
+            await interaction.response.send_message(GAMESTATE_NONE_ERROR_MESSAGE)
+            return
         player_obj = await verify_player(interaction, player_username)
         if player_obj is not None:
             player_obj.health = value
-            await interaction.response.send_message(f"Changed health of {player_obj.username} to {value}.")
+            modbot.gamestate.sync_living_players()
+            await interaction.response.send_message(f"Changed health of {player_obj.username} to {value}. \n"
+                                                    "**If you killed or revived a player with this command, ensure you fix the votecount!**")
 
     @client.tree.command(name="max_health", description="Change a player's health.", guild=discord.Object(id=config.hosting_discord_guild_id))
     @app_commands.describe(player_username="The player whose state is being modified", value="The new max health value")
@@ -393,11 +412,17 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             player_obj = await verify_player(interaction, player_username)
             if player_obj is None:
                 return
+            if not identifier.replace(' ', '').isalnum():
+                await interaction.response.send_message("Error: Identifiers must consist of only letters, numbers, and spaces, and must have at least one non-space character.")
+                return
             new_ita_item = player.ITAItem(damage=damage, can_crit=can_crit, identifier=identifier)
             list_to_add_to = player_obj.silent_ita_items if is_silent else player_obj.ita_items
             current_identifiers = list(map(lambda x : x.identifier, player_obj.ita_items + player_obj.silent_ita_items))
             if identifier in current_identifiers:
                 await interaction.response.send_message(f"Error: Player {player_obj.username} already has an ITA with identifier {identifier}.")
+                return
+            if damage < -1:
+                await interaction.response.send_message(F"Error: Negative damage ITAs are not allowed (though you can use -1 to mean base damage).")
                 return
             list_to_add_to.append(new_ita_item)
             await interaction.response.send_message(f"Player {player_obj.username} successfully given ITA with {damage=}, {identifier=}, {can_crit=}, {is_silent=}.")
@@ -615,7 +640,7 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             player_obj = modbot.gamestate.get_player_object_living_players_only(player_username)
             assert player_obj is not None
             player_obj.health = 0
-            modbot.gamestate.kill_about_to_die_players()
+            modbot.gamestate.sync_living_players()
                     
             await interaction.response.send_message(f"Killed player with username {player_username}. \n"
                                                 + "### Remember to correct the votecount yourself! This command does not correct it because it is primarily designed to be used at SOD for many deaths.")

@@ -75,7 +75,7 @@ class Setup:
         full_path = os.path.join(c.SETUP_FOLDER, self.game_name, c.FLIPS_FOLDER_NAME, flip_path)
         if not os.path.exists(full_path):
             return None
-        with open(full_path, 'r') as file_obj:
+        with open(full_path, 'r', encoding='utf-8') as file_obj:
             return file_obj.read()
 
     
