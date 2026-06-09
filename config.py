@@ -29,7 +29,6 @@ with open('config.yaml', 'r') as config_file:
     assert setup_object is not None
 
     resolve_like_vc_plugin: bool = config_dict['resolve_like_vc_plugin']
-    turbo_pm_json_path: str = config_dict['turbo_pm_json_path']
     action_processor_sleep_seconds: int = config_dict['action_processor_sleep_seconds']
 
     delay_between_post_checks: int = config_dict['delay_between_post_checks']

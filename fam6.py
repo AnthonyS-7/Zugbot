@@ -12,6 +12,7 @@ vampire_player: 'None | player.Player' = None
 
 bird_player: 'None | player.Player' = None
 willow_player: 'None | player.Player' = None
+spooky_player: 'None | player.Player' = None
 
 def get_ita_ad():
     return fam6_misc.get_random_ad()
@@ -46,3 +47,6 @@ def heal_vampire_player():
     if  vampire_player is not None:
         vampire_player.health = min(vampire_player.max_health, vampire_player.health + 20)
             
+def set_spooky_player(spooky: 'player.Player | None'):
+    global spooky_player
+    spooky_player = spooky

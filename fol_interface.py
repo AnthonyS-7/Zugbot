@@ -14,6 +14,7 @@ import random
 import re
 import asyncio
 from fluent_discourse import Discourse
+from fluent_discourse.errors import RateLimitError
 import queue
 import json
 import os
@@ -485,7 +486,7 @@ def do_death_in_votecount(votecount: dict[str, list[str]], dead_player: str):
     new_votecount[NOT_VOTING] = list(set(new_votecount[NOT_VOTING] + players_voting_dead_player))
     return new_votecount
 
-async def correct_capilatization_in_discourse_username(username: str) -> tuple[str, bool]:
+async def correct_capilatization_in_discourse_username(username: str, retries_so_far=0) -> tuple[str, bool]:
     """
     Given a username, returns the a tuple of the username with correct capitalization (matching the actual user),
     and True if the username was resolved successfully (false otherwise).
@@ -507,6 +508,12 @@ async def correct_capilatization_in_discourse_username(username: str) -> tuple[s
         corrected_username = user_info["user"]["username"]
         print(f"{corrected_username=}")
         return corrected_username, True
+    except RateLimitError as e:
+        print("Ran into RateLimitError while resolving {username}. Retrying.")
+        if retries_so_far < config.max_exception_retries:
+            await asyncio.sleep(retries_so_far)
+            return await correct_capilatization_in_discourse_username(username, retries_so_far=retries_so_far+1)
+        return username, False
     except Exception as e:
         print(f"While resolving username {username}, we ran into the error below:")
         print(type(e))
@@ -857,7 +864,7 @@ async def give_role_pm(player: str, role_pm: str, game_name: str, discord_links=
     pm_id = int(result_of_api_call["topic_id"])
     print(f"ID for this PM: {pm_id}")
     username_to_role_pm_id[player.lower()] = pm_id
-    await asyncio.sleep(2)
+    await asyncio.sleep(4)
     
 
 

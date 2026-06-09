@@ -2,7 +2,7 @@ url: "https://www.fortressoflies.com" # Should not end with /
 username: "Zugbot"
 
 game_name: "FAM6 Testing"
-game_start_time: '' # If not '', then the game will start at this time. Also, all phases
+game_start_time: '2026-06-06 21:20' # If not '', then the game will start at this time. Also, all phases
     # will have start and end times calculated off of this time. This is in 24 hour time. This should be in the timezone
     # specified in utc_offset.
     # Example format: "2024-08-13 08:00"
@@ -14,9 +14,42 @@ host_usernames:
 
 playerlist_usernames:
 - Zug
+- zug_alt_0
 - zug_alt_1
 - zug_alt_2
 - zug_alt_3
+- zug_alt_4
+- zug_alt_5
+- zug_alt_6
+- zug_alt_7
+- zug_alt_8
+- zug_alt_9
+- zug_alt_10
+- zug_alt_11
+- zug_alt_12
+- zug_alt_13
+- zug_alt_14
+- zug_alt_15
+- zug_alt_16
+- zug_alt_17
+- zug_alt_18
+- zug_alt_19
+- zug_alt_20
+- zug_alt_21
+- zug_alt_22
+- zug_alt_23
+- zug_alt_24
+- zug_alt_25
+- zug_alt_26
+- zug_alt_27
+- zug_alt_28
+- zug_alt_29
+- zug_alt_30
+- zug_alt_31
+- zug_alt_32
+- zug_alt_33
+- zug_alt_34
+- zug_alt_35
 - NotAZug
 - NotAZugAlt
 - zug_alt_account
@@ -27,13 +60,18 @@ playerlist_usernames:
 - Zqgzwqng
 - AlsoZug
 - wrongboy
+- famtest1
+- famtest2
+- famtest3
+- famtest4
+- famtest5
 
 topic_id: 9145 # The topic ID of the game thread
 
 mafia_discord_link: ''
 rand_roles: true # Whether to rand roles. Set to true in games! This option is here for easier debugging.
 
-day_length: 5 # In minutes
+day_length: 35 # In minutes
 night_length: 2 # In minutes
 action_deadline: 1 # Actions can no longer be submitted this many minutes before phase change. Should be at least 1.
 
@@ -42,9 +80,9 @@ setup_name: 'fam6' # Must exactly match the name in the setups folder
 include_itas: true # If true, ITA windows will exist.
 ita_windows: # Each number represents the number of minutes past SOD.
     - start: 1
-      end: 2
-    - start: 3
-      end: 4
+      end: 10
+    - start: 20
+      end: 30
 ita_base_damage: 10 # The base damage of ITAs
 ita_ads: false # Whether to have 'ads' in ITAs.
 
@@ -59,9 +97,6 @@ hosting_discord_channel_id_for_output: 1503775486889820282 # The ID of the disco
 hosting_discord_guild_id: 1462965682970038305 # Most commands are only visible in this discord
 
 resolve_like_vc_plugin: true # Should be set to true for most use cases.
-
-turbo_pm_json_path: "turbo_pms.json" # ignored if not running turbos. For turbos, this provides topic IDs for previous PMs
-                                     # used to speed up role distribution.
 
 action_processor_sleep_seconds: 5 # Time slept between consecutive checks for new action submissions (in seconds)
                                   # This has a large impact on rate limiting issues.

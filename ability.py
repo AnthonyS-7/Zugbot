@@ -194,35 +194,40 @@ class Ability:
         self.use_count += 1
 
 
-    async def attempt_to_use_ability(self, post: p.Post, player: 'pl.Player | None', gamestate: game_state.GameState, action_submission_open: bool, ita_submission_open: bool, is_host_post: bool = False):
+    async def attempt_to_use_ability(self, post: p.Post, player: 'pl.Player | None', gamestate: game_state.GameState, action_submission_open: bool, ita_submission_open: bool, is_host_post: bool = False,
+                                     fake_post_used=False) -> bool:
         """
         post: The post that may have attempted to use this ability
         player: The player that attempted to use an ability
         gamestate: The gamestate
         action_submission_open: Whether action deadline is passed
         is_host_post: Whether this is run by the host (removes many checks that could otherwise prevent the ability from happening)
+
+        fake_post_used is a bandaid fix for proxied actions with discord commands. This method should get a rewrite to handle it properly.
+
+        Returns True if the ability was used, False otherwise.
         """
         print(f"Testing if {self.ability_name} was used.")
         if is_host_post:
             try:
                 await self.use_ability_as_host(post, gamestate)
+                return True
             except Exception as e:
                 print(f"Tried to use {self.ability_name} but ran into unexpected exception of type {type(e)}. Exception below: ")
                 print(e)
-            return
-        
+                return False        
 
         assert player is not None
         if not self.ignore_action_deadline and not action_submission_open:
             print("Action submission is not open, and this ability does not ignore the action deadline.")
-            return
+            return False
         if self.ability_restrictions.ita_required and not ita_submission_open:
             print("ITA submission is not open, and this ability can only be used in ITA sessions.")
-            return
-        if not is_submission_location_correct(self.submission_location, post.topicNumber, post.poster):
+            return False
+        if not fake_post_used and not is_submission_location_correct(self.submission_location, post.topicNumber, post.poster):
             print(f"Submission location for {self.ability_name} is wrong")
-            return
-        print(f"Submission location for {self.ability_name} is correct (or is a host command)")
+            return False
+        print(f"Submission location for {self.ability_name} is correct (or is a host command, or overrides submission location check)")
 
         
 
@@ -231,26 +236,27 @@ class Ability:
         except ParsingException as e:
             print(f"This message could not be parsed for the ability: {self.ability_name}. Error below: ")
             print(e.args)
-            return
+            return False
         except Exception as e:
             print(f"Unintended exception of type {type(e)} occured. Exception is: ")
             print(e)
-            return
+            return False
         print(f"Input for {self.ability_name} parsed successfully; the parameters are {parameters}")
 
         success, error_message = self.ability_restrictions.verify(player, self, gamestate,
                                                         self.syntax_parser.parameter_list, parameters)
         if not success:
-            if not self.force_send_feedback_in_submission_location:
-                fol_interface.send_message(error_message, player.username, priority=5)
-            else:
-                fol_interface.create_post(string_to_post=error_message, topic_id_parameter=post.topicNumber, priority=5)
-            print(f"This ability failed verification with message: {error_message}")
-            return
+            if not fake_post_used:
+                if not self.force_send_feedback_in_submission_location:
+                    fol_interface.send_message(error_message, player.username, priority=5)
+                else:
+                    fol_interface.create_post(string_to_post=error_message, topic_id_parameter=post.topicNumber, priority=5)
+                print(f"This ability failed verification with message: {error_message}")
+            return False
         print("Ability passed verification!")
-        if not self.force_send_feedback_in_submission_location and not self.no_action_processed_post:
+        if not self.force_send_feedback_in_submission_location and not self.no_action_processed_post and not fake_post_used:
             fol_interface.send_message("Action processed.", player.username, priority=5)
-        elif not self.no_action_processed_post:
+        elif not self.no_action_processed_post and not fake_post_used:
             fol_interface.create_post(string_to_post="Action processed.", topic_id_parameter=post.topicNumber, priority=5)
 
         if self.is_instant and (self.willpower_required is None or player.willpower >= self.willpower_required):
@@ -261,6 +267,7 @@ class Ability:
             self.use_count += 1
         else:
             player.record_action(self.id, parameters)
+        return True
 
 # Below functions/classes are used in AbilityRestrictions
 def _default_cycle_restriction(cycle_num: int):

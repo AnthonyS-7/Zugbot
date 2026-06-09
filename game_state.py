@@ -166,6 +166,20 @@ class GameState:
         random.shuffle(result)
         return result
     
+    def get_original_players(self) -> list[str]:
+        """
+        Returns the names of the original players, in a randomized order.
+
+        The randomized order ensures that no role/alignment-indicative information can slip through as a result of this method.
+        """
+        random.seed(time.time())
+        result = []
+        for player in self.original_players:
+            result.append(player.username)
+        random.shuffle(result)
+        return result
+
+    
     def list_about_to_die_players(self) -> list[str]:
         """
         Lists the players who are currently at 0 health or less.

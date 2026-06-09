@@ -218,7 +218,7 @@ async def resolve_current_deaths(gamestate: game_state.GameState, during_night_d
         await fol_interface.post_votecount(players_to_kill=about_to_die_players, nominated_players=gamestate.get_all_nominated_players(), nominator_to_nominee_dict=gamestate.get_nominations())
 
     
-def resolve_name(nickname: str):
+def resolve_name(nickname: str, living_players_only=True):
     """
     Removes an '@' before the name, and resolves by substring if needed.
     Details of substring resolution are explained in fol_interface.resolve_substring_alias, with `for_votecount == False`.
@@ -226,7 +226,10 @@ def resolve_name(nickname: str):
     if len(nickname) > 0:
         nickname = nickname[1:] if nickname[0] == '@' else nickname
     assert gamestate is not None
-    return fol_interface.resolve_substring_alias(nickname, gamestate.get_living_players(), for_votecount=False)
+
+    return fol_interface.resolve_substring_alias(nickname, 
+                        gamestate.get_living_players() if living_players_only else gamestate.get_original_players(), 
+                        for_votecount=False)
 
 def get_pregame_post_string():
     with open("about_zugbot.md", "r") as about_zugbot_file:
@@ -290,7 +293,7 @@ async def run_vc_bot():
 def send_feedback(feedback_string: str, sources: list[p.Player] | None, receivers: list[p.Player], action_types: list[str], was_instant: bool):
     pass
 
-def determine_if_post_within_action_deadline(post: postModule.Post, require_action_deadline: bool, require_ita_window: bool):
+def determine_if_post_within_action_deadline(post_datetime_timestamp: datetime.datetime, require_action_deadline: bool, require_ita_window: bool):
     assert gamestate is not None
     phase_start_time = get_phase_start_time()
     # print(f"Determined that the phase start time was: {datetime.datetime.strftime(phase_start_time, "%Y-%m-%d %H:%M")}")
@@ -301,7 +304,7 @@ def determine_if_post_within_action_deadline(post: postModule.Post, require_acti
         minutes_in_phase = config.day_length if gamestate.is_day else config.night_length
         action_end_time = phase_start_time + datetime.timedelta(minutes=(minutes_in_phase - config.action_deadline))
         # print(f"Determined that the phase end time was: {datetime.datetime.strftime(action_end_time, "%Y-%m-%d %H:%M")}")
-        if post.datetime_timestamp < phase_start_time or post.datetime_timestamp > action_end_time:
+        if post_datetime_timestamp < phase_start_time or post_datetime_timestamp > action_end_time:
             return False
     if require_ita_window:
         if not config.include_itas:
@@ -310,7 +313,7 @@ def determine_if_post_within_action_deadline(post: postModule.Post, require_acti
         for ita_window_times in config.ita_windows:
             ita_window_start_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["start"])
             ita_window_end_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["end"])
-            if ita_window_start_time <= post.datetime_timestamp and post.datetime_timestamp <= ita_window_end_time:
+            if ita_window_start_time <= post_datetime_timestamp and post_datetime_timestamp <= ita_window_end_time:
                 in_ita_window = True
                 break
         if not in_ita_window:
@@ -337,8 +340,8 @@ async def process_post(post: post_class.Post, gamestate: game_state.GameState, a
         return None
     is_host_post = player_object is None
     for ability in (player_object.abilities if not is_host_post else host.host_abilities):
-        actions_deadline_open = determine_if_post_within_action_deadline(post, True, False)
-        ita_deadline_open = determine_if_post_within_action_deadline(post, False, True)
+        actions_deadline_open = determine_if_post_within_action_deadline(post.datetime_timestamp, True, False)
+        ita_deadline_open = determine_if_post_within_action_deadline(post.datetime_timestamp, False, True)
         await ability.attempt_to_use_ability(post=post, player=player_object, gamestate=gamestate, 
                                              action_submission_open=actions_deadline_open, 
                                              ita_submission_open=ita_deadline_open,
@@ -480,6 +483,11 @@ async def start_game() -> bool:
     if len(config.playerlist_usernames) != config.playercount:
         print(f"The playercount of this setup is {config.playercount}, but there are {len(config.playerlist_usernames)} players in the playerlist.")
         return False
+    
+    if config.game_start_time != '':
+        if datetime.datetime.strptime(config.game_start_time, "%Y-%m-%d %H:%M") < datetime.datetime.now():
+            print(f"Attempted to run a game that starts at {config.game_start_time}, which is in the past!")
+            return False
 
     playerlist_player_objects : list['p.Player'] = []
 

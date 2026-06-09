@@ -20,12 +20,12 @@ VANILLA_TOWNIES_LIST = [
     'arctic.txt',
     'jason.mrrown.txt',
     'marshal.txt'
-]
+] + ['town.txt'] * 28
 MAFIA_GOONS_LIST = [
     'meow.txt',
     'orangeandblack5.txt',
     'mollylikesorigami.txt'
-]
+] + ['mafia.txt'] * 10
 
 
 def generate_rolelist() -> list[Callable[[str], "player.Player"]]:
@@ -41,7 +41,7 @@ def generate_rolelist() -> list[Callable[[str], "player.Player"]]:
 def get_setup():
     return setup.Setup(game_name="fam6",
                 allow_no_exe=False,
-                playercount=14,
+                playercount=52,
                 get_rolelist=generate_rolelist,
                 disable_nightkill=True,
                 disable_elimination=True,
