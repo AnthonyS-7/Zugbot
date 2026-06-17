@@ -16,6 +16,7 @@ import setup
 
 tasks: list[asyncio.Task] = []
 
+async def start_all_components(reset_globals=True, update_latest_posts_in_role_pms=False):
     global tasks
     if reset_globals:
         modbot.reset_globals_to_defaults()
