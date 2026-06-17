@@ -15,6 +15,7 @@ import re
 import asyncio
 from fluent_discourse import Discourse
 from fluent_discourse.errors import RateLimitError
+from fluent_discourse.errors import PageNotFoundError
 import queue
 import json
 import os
@@ -86,6 +87,32 @@ async def do_api_call(function_to_run, ignore_return: bool, max_retries=-1):
             retries += 1
             await asyncio.sleep(config.exception_retry_delay)
 
+async def invalidate_previous_role_pm_commands() -> bool:
+    """
+    This function iterates through every role PM, and updates topic_id_to_last_post_accessed so that
+    all current posts in their role PM are marked as viewed already.
+
+    This is an expensive method! It requires as many calls to the Discourse API as there are role PMs.
+
+    Returns True if all role PMs had their posts invalidated.
+    """
+    success = True
+    global topic_id_to_last_post_accessed
+    for username in username_to_role_pm_id:
+        role_pm_id = str(username_to_role_pm_id[username])
+        json_response = await do_api_call(lambda : fluent_discourse_client.t._(role_pm_id)._(99999).json.get(), ignore_return=False)
+        if json_response is None:
+            print(f"Warning: Failed to invalidate previous role PM commands of {username}. Bugs may occur!")
+            success = False
+            continue
+        post_list = json_response['post_stream']['posts']
+        highest_post_number = 0
+        for post_json in post_list:
+            highest_post_number = max(highest_post_number, post_json["post_number"])
+        topic_id_to_last_post_accessed[role_pm_id] = highest_post_number
+        print(f"Set {username}'s last post accessed to {highest_post_number}.")
+        await asyncio.sleep(1) # avoid getting ratelimited
+    return success
 
 def user_exists(username: str) -> bool:
     """
@@ -509,7 +536,7 @@ async def correct_capilatization_in_discourse_username(username: str, retries_so
         print(f"{corrected_username=}")
         return corrected_username, True
     except RateLimitError as e:
-        print("Ran into RateLimitError while resolving {username}. Retrying.")
+        print(f"Ran into RateLimitError while resolving {username}. Retrying.")
         if retries_so_far < config.max_exception_retries:
             await asyncio.sleep(retries_so_far)
             return await correct_capilatization_in_discourse_username(username, retries_so_far=retries_so_far+1)
@@ -922,10 +949,28 @@ async def ensure_all_players_exist_and_are_spelled_correctly(playerlist: list[st
         print(f"{corrected_capitalization=}")
         if not success or player != corrected_capitalization:
             return False
+        await asyncio.sleep(1)
     return True
 
 
-
+async def check_if_new_main_thread_id_is_valid(new_topic_id: int) -> bool:
+    try:
+        result_json = await do_api_call(lambda : fluent_discourse_client.t._(new_topic_id).json.get(),
+                        ignore_return=False, max_retries=0)
+        assert type(result_json) == dict
+        if "errors" in result_json:
+            print(f"Zugbot cannot access topic with id {new_topic_id}.")
+            return False
+        if result_json["visible"] == False:
+            print(f"The topic with id {new_topic_id} is private.")
+            return False
+        return True
+    except PageNotFoundError as e:
+        print(f"Zugbot cannot access topic with id {new_topic_id}.")
+        return False
+    except Exception as e:
+        print(f"An unexpected error occured when trying to access topic with id {new_topic_id}.")
+        return False
 
 
 # print(fluent_discourse_client.posts._(str(1456634)).json.get())

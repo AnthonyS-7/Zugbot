@@ -9,23 +9,23 @@ import os
 import random
 
 VANILLA_TOWNIES_LIST = [
-    'neil_the_eel.txt',
-    'italy.txt',
-    'diafiasco.txt',
-    'kyubey.txt',
-    'sulit.txt',
-    'daeron.txt',
-    'jaiden.txt',
-    'magnus.txt',
-    'arctic.txt',
-    'jason.mrrown.txt',
-    'marshal.txt'
-] + ['town.txt'] * 28
+    # 'neil_the_eel.txt',
+    # 'italy.txt',
+    # 'diafiasco.txt',
+    # 'kyubey.txt',
+    # 'sulit.txt',
+    # 'daeron.txt',
+    # 'jaiden.txt',
+    # 'magnus.txt',
+    # 'arctic.txt',
+    # 'jason.mrrown.txt',
+    # 'marshal.txt'
+] + ['town.txt'] * 48 + ['lost_wolf.txt']
 MAFIA_GOONS_LIST = [
-    'meow.txt',
-    'orangeandblack5.txt',
-    'mollylikesorigami.txt'
-] + ['mafia.txt'] * 10
+    # 'meow.txt',
+    # 'orangeandblack5.txt',
+    # 'mollylikesorigami.txt'
+] + ['mafia.txt'] * 15
 
 
 def generate_rolelist() -> list[Callable[[str], "player.Player"]]:
@@ -41,7 +41,7 @@ def generate_rolelist() -> list[Callable[[str], "player.Player"]]:
 def get_setup():
     return setup.Setup(game_name="fam6",
                 allow_no_exe=False,
-                playercount=52,
+                playercount=64,
                 get_rolelist=generate_rolelist,
                 disable_nightkill=True,
                 disable_elimination=True,

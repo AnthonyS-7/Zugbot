@@ -2,7 +2,7 @@ url: "https://www.fortressoflies.com" # Should not end with /
 username: "Zugbot"
 
 game_name: "FAM6 Testing"
-game_start_time: '2026-06-06 21:20' # If not '', then the game will start at this time. Also, all phases
+game_start_time: '2026-06-17 04:30' # If not '', then the game will start at this time. Also, all phases
     # will have start and end times calculated off of this time. This is in 24 hour time. This should be in the timezone
     # specified in utc_offset.
     # Example format: "2024-08-13 08:00"
@@ -50,6 +50,18 @@ playerlist_usernames:
 - zug_alt_33
 - zug_alt_34
 - zug_alt_35
+- zug_alt_36
+- zug_alt_37
+- zug_alt_38
+- zug_alt_39
+- zug_alt_40
+- zug_alt_41
+- zug_alt_42
+- zug_alt_43
+- zug_alt_44
+- zug_alt_45
+- zug_alt_46
+- zug_alt_47
 - NotAZug
 - NotAZugAlt
 - zug_alt_account
@@ -66,12 +78,12 @@ playerlist_usernames:
 - famtest4
 - famtest5
 
-topic_id: 9145 # The topic ID of the game thread
+topic_id: 15005 # The topic ID of the game thread
 
 mafia_discord_link: ''
-rand_roles: true # Whether to rand roles. Set to true in games! This option is here for easier debugging.
+rand_roles: false # Whether to rand roles. Set to true in games! This option is here for easier debugging.
 
-day_length: 35 # In minutes
+day_length: 120 # In minutes
 night_length: 2 # In minutes
 action_deadline: 1 # Actions can no longer be submitted this many minutes before phase change. Should be at least 1.
 
@@ -80,11 +92,13 @@ setup_name: 'fam6' # Must exactly match the name in the setups folder
 include_itas: true # If true, ITA windows will exist.
 ita_windows: # Each number represents the number of minutes past SOD.
     - start: 1
-      end: 10
-    - start: 20
       end: 30
+    - start: 31
+      end: 60
+    - start: 61
+      end: 119
 ita_base_damage: 10 # The base damage of ITAs
-ita_ads: false # Whether to have 'ads' in ITAs.
+ita_ads: true # Whether to have 'ads' in ITAs.
 
 do_not_flip: true # Disables flips (and also disables Zugbot's game end check, so that Zugbot never ends the game on its own)
 allow_closing_and_opening_threads: true
@@ -95,6 +109,7 @@ disable_day_and_night_start_announcements: true
 send_messages_to_hosting_discord: true # True if debug messages should be sent to a host discord
 hosting_discord_channel_id_for_output: 1503775486889820282 # The ID of the discord channel to output debug messages to
 hosting_discord_guild_id: 1462965682970038305 # Most commands are only visible in this discord
+delay_between_discord_host_logs: 5 # Delay in seconds between discord host logs
 
 resolve_like_vc_plugin: true # Should be set to true for most use cases.
 
@@ -102,10 +117,10 @@ action_processor_sleep_seconds: 5 # Time slept between consecutive checks for ne
                                   # This has a large impact on rate limiting issues.
 
 delay_between_post_checks: 1 # Time slept between checks of the posting queue (in seconds)
-delay_between_posts: 2 # Minimum delay between posts Zugbot makes (in seconds)
+delay_between_posts: 0 # Minimum delay between posts Zugbot makes (in seconds)
 
 exception_retry_delay: 5 # Time to wait to retry an API call if an exception occurs (in seconds)
-max_exception_retries: 20 # Maximum number of times to retry an API call before giving up
+max_exception_retries: 100 # Maximum number of times to retry an API call before giving up
 
 restore_delay_minutes: .75 # Every restore_delay_minutes, the game is saved.
 min_delay_between_saves_seconds: 30 # Saves are cancelled if there has been a save in the last min_delay_between_saves_seconds.
@@ -117,4 +132,4 @@ votecount_post_interval: 10 # The number of posts between automatic votecount po
 
 debug_print_all_posts: true
 
-crash_on_exception: false # Makes Zugbot crash entirely when reaching an unhandeled exception. Also, inadvertently turns off restore saving.
+crash_on_exception: true # Makes Zugbot crash entirely when reaching an unhandeled exception. Also, inadvertently turns off restore saving.

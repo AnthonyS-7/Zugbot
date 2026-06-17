@@ -1,3 +1,5 @@
 # [color=00ff00] Town [/color]
 
-Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.
+Your role will be edited in by hosts.
+
+You win when the Mafia and all other threats to the Town have been eliminated, and when at least 1 Town member is still alive.

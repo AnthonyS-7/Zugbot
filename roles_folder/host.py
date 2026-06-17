@@ -200,16 +200,21 @@ reenable_abilities_ability = ability.Ability(
     ignore_action_deadline=True
 )
 
-if not config.is_botf:
-    host_abilities = [
-        do_substitution_ability,
-        do_modkill_ability,
-        disable_all_abilities_ability,
-        reenable_abilities_ability
-    ]
+if False: # this is disabled because of the bug affecting host abilities, which makes Zugbot go through old threads and process those posts.
+          # The short-term fix to that bug, which is being used for FAM6, is just removing all the host abilities.
+          # The long-term fix is finish migrating all host commands to Discord.
+    if not config.is_botf:
+        host_abilities = [
+            do_substitution_ability,
+            do_modkill_ability,
+            disable_all_abilities_ability,
+            reenable_abilities_ability
+        ]
+    else:
+        host_abilities = [do_substitution_ability, do_modkill_ability, disable_all_abilities_ability, reenable_abilities_ability,
+                        reset_nominations_ability, set_nomination_ability, remove_nomination_ability, restore_nomination_ability,
+                        open_nominations_ability, close_nominations_ability]
+    if config.do_votecounts:
+        host_abilities.append(abilities_standard.VOTECOUNT_ABILITY())
 else:
-    host_abilities = [do_substitution_ability, do_modkill_ability, disable_all_abilities_ability, reenable_abilities_ability,
-                      reset_nominations_ability, set_nomination_ability, remove_nomination_ability, restore_nomination_ability,
-                      open_nominations_ability, close_nominations_ability]
-if config.do_votecounts:
-    host_abilities.append(abilities_standard.VOTECOUNT_ABILITY())
+    host_abilities = []

@@ -16,10 +16,15 @@ import setup
 
 tasks: list[asyncio.Task] = []
 
-async def start_all_components(reset_globals=True):
     global tasks
     if reset_globals:
         modbot.reset_globals_to_defaults()
+    if update_latest_posts_in_role_pms:
+        invalidation_success = await fol_interface.invalidate_previous_role_pm_commands()
+        if invalidation_success:
+            print("Finished invalidating all previous commands in role PMs.")
+        else:
+            print("Attempted to invalidte all previous commands in role PMs, but failed on some of them! Proceed with caution.")
     if config.crash_on_exception:
         async with asyncio.TaskGroup() as group:
             start_control = group.create_task(modbot.run_modbot())
@@ -33,6 +38,9 @@ async def start_all_components(reset_globals=True):
             if config.do_votecounts:
                 start_vc_bot = group.create_task(modbot.run_vc_bot())
                 tasks.append(start_vc_bot)
+            if not config.is_turbo and config.send_messages_to_hosting_discord:
+                start_discord_host_logs = group.create_task(discord_interface.hosting_discord_pipeline())
+                tasks.append(start_discord_host_logs)
             start_ita_window_poster = group.create_task(modbot.post_ita_window_announcements())
             tasks.append(start_ita_window_poster)
     else:
@@ -49,6 +57,9 @@ async def start_all_components(reset_globals=True):
             tasks.append(start_vc_bot)
         start_ita_window_poster = asyncio.create_task(modbot.post_ita_window_announcements())
         tasks.append(start_ita_window_poster)
+        if not config.is_turbo and config.send_messages_to_hosting_discord:
+            start_discord_host_logs = asyncio.create_task(discord_interface.hosting_discord_pipeline())
+            tasks.append(start_discord_host_logs)
         await start_control
         await start_action_listener
         await start_fol_poster

@@ -204,7 +204,10 @@ async def resolve_current_deaths(gamestate: game_state.GameState, during_night_d
         flip = get_flip(about_to_die_player, gamestate)
         if not hide_death_messages:
             fol_interface.add_death_to_cache(about_to_die_player, f"has died{' during the night' if during_night_death_flavor else ''}!\n", flip)
-        fol_interface.send_message("# You have died.", about_to_die_player, priority=1)
+        player_obj = gamestate.get_player_object_original_players(about_to_die_player) # This line to the comment below are specifically
+        assert player_obj is not None
+        if 'lol' not in player_obj.passives.defensive_ita_tags:
+            fol_interface.send_message("# You have died.", about_to_die_player, priority=1) # for the lol role and should be removed after fam6
 
     gamestate.sync_living_players()
 
@@ -235,18 +238,18 @@ def get_pregame_post_string():
     with open("about_zugbot.md", "r") as about_zugbot_file:
         pregame_post_string = about_zugbot_file.read()
 
-    pregame_post_string += "# Parameters for this game \n"
-    pregame_post_string += f"Day length: {config.day_length // 60} hours, {config.day_length % 60} minutes \n"
-    pregame_post_string += f"Night length: {config.night_length // 60} hours, {config.night_length % 60} minutes \n"
-    pregame_post_string += f"Action Deadline: {config.action_deadline} minutes before phase change \n"
-    pregame_post_string += f"Multivoting allowed: {config.allow_multivoting} \n"
-    pregame_post_string += f"No-Exe allowed: {config.allow_no_exe} \n"
-    if config.allow_no_exe:
-        pregame_post_string += f"No-Exe wins ties: {config.no_exe_wins_ties} \n"
-    pregame_post_string += f"Votes Match VC Plugin: {config.resolve_like_vc_plugin} \n"
-    pregame_post_string += f"Minimum Delay Between Votecounts: {config.votecount_time_interval} minutes\n"
-    pregame_post_string += f"Minimum Postcount Between Votecounts: {config.votecount_post_interval} posts\n"
-    pregame_post_string += f"Hosts: {', '.join(config.original_host_usernames)}\n"
+    # pregame_post_string += "# Parameters for this game \n"
+    # pregame_post_string += f"Day length: {config.day_length // 60} hours, {config.day_length % 60} minutes \n"
+    # pregame_post_string += f"Night length: {config.night_length // 60} hours, {config.night_length % 60} minutes \n"
+    # pregame_post_string += f"Action Deadline: {config.action_deadline} minutes before phase change \n"
+    # pregame_post_string += f"Multivoting allowed: {config.allow_multivoting} \n"
+    # pregame_post_string += f"No-Exe allowed: {config.allow_no_exe} \n"
+    # if config.allow_no_exe:
+    #     pregame_post_string += f"No-Exe wins ties: {config.no_exe_wins_ties} \n"
+    # pregame_post_string += f"Votes Match VC Plugin: {config.resolve_like_vc_plugin} \n"
+    # pregame_post_string += f"Minimum Delay Between Votecounts: {config.votecount_time_interval} minutes\n"
+    # pregame_post_string += f"Minimum Postcount Between Votecounts: {config.votecount_post_interval} posts\n"
+    # pregame_post_string += f"Hosts: {', '.join(config.original_host_usernames)}\n"
     
     return pregame_post_string
 
@@ -355,6 +358,7 @@ async def run_action_processor():
         await asyncio.sleep(4)
     await fol_interface.get_new_posts_with_pings(ignore_return=True)
     # we DON'T process actions here. this is to avoid processing old pings
+    
     while True:
         await asyncio.sleep(config.action_processor_sleep_seconds)
         new_posts = await fol_interface.get_new_posts_with_pings()

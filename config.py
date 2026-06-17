@@ -56,6 +56,7 @@ with open('config.yaml', 'r') as config_file:
     send_messages_to_hosting_discord: bool = config_dict['send_messages_to_hosting_discord']
     hosting_discord_channel_id_for_output: int = config_dict['hosting_discord_channel_id_for_output']
     hosting_discord_guild_id: int = config_dict['hosting_discord_guild_id']
+    delay_between_discord_host_logs: int = config_dict['delay_between_discord_host_logs']
 
     do_not_flip: bool = config_dict['do_not_flip']
     allow_closing_and_opening_threads: bool = config_dict['allow_closing_and_opening_threads']

@@ -137,6 +137,9 @@ class Passives:
         self.flat_ita_resistance = flat_ita_resistance
         self.defensive_ita_tags: set[str] = defensive_ita_tags if defensive_ita_tags is not None else set()
         self.offensive_ita_tags: dict[str, int] = offensive_ita_tags if offensive_ita_tags is not None else dict()
+        self.number_of_itas_taken = 0 # relevent ONLY for the lol role in FAM6, but maybe useful later. 
+                                      # Should probably refactor this into a PlayerHistory class that stores
+                                      # stats of this kind.
 
 
 class ITAItem:
@@ -258,6 +261,8 @@ class Player:
         self.add_default_ita_tags()
         hosting_discord_feedback = ""
 
+        is_lol_role = 'lol' in self.passives.defensive_ita_tags
+
         # Marluna's role
         if 'vampire' in self.passives.defensive_ita_tags and 'vampire' in offensive_ita_tags:
             fam6.heal_vampire_player()
@@ -267,9 +272,19 @@ class Player:
         if damage == -1:
             damage = config.ita_base_damage
 
+        self.passives.number_of_itas_taken += 1
+
         hosting_discord_feedback += f"ITA properties: {damage=}, {can_crit=} \n"
         hosting_discord_feedback += f"Defensive properties: {self.health=}, {self.protection=}, {self.passives.flat_ita_resistance=} \n"
         hosting_discord_feedback += f"Misc properties:  {self.passives.ita_angel_count=}, {self.passives.ita_angel_crit_count=} \n"
+        # if 'lol' in self.passives.defensive_ita_tags:
+        #     is_future_hit = self.passives.number_of_itas_taken * 10 >= self.health
+        #     hosting_additional_feedback = f"\n## Because {self.username} has the lol role, this shot **{'goes into' if not is_future_hit else 'hits in'}** the future!\nThere is {self.passives.number_of_itas_taken * 10} damage waiting in the future, and this player has {self.health} health."
+        #     await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback + hosting_additional_feedback)
+        #     if not is_future_hit:
+        #         return "# The shot connects in the future!"
+        #     else:
+        #         return "# The shot hits in the future!"
         if (self.passives.ita_angel_count > 0):
             self.passives.ita_angel_count -= 1
             await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
@@ -298,16 +313,25 @@ class Player:
             self.health = 0
             hosting_discord_feedback += f"## {self.username} has died by reaching 0 HP! \n"
             await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
-            message_to_return = f"# Hit! The target has reached 0 HP and died. Stand by for flip."
+            if not is_lol_role:
+                message_to_return = f"# Hit! The target has reached 0 HP and died. Stand by for flip."
+            else:
+                message_to_return = f"# Hit! The target has reached 0 HP... and died in the future!"
         elif is_crit:
             self.health = 0
             hosting_discord_feedback += f"## {self.username} has died from a direct hit! \n"
             await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
-            message_to_return = f"# Direct hit! Stand by for flip."
+            if not is_lol_role:
+                message_to_return = f"# Direct hit! Stand by for flip."
+            else:
+                message_to_return = f"# Direct hit! They have died... in the future!"
         else:
             self.health -= damage
             await discord_interface.send_message_to_hosting_discord(hosting_discord_feedback)
             message_to_return = "The shot connects."
+
+        if is_lol_role and self.health == 0:
+            await discord_interface.send_message_to_hosting_discord("# This player has the lol role so they died in the future!")
 
         if fam6.do_bird_check(player_shot=self):
             assert fam6.willow_player is not None

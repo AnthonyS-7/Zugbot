@@ -117,6 +117,7 @@ def restore_individual_variables(json_input: dict):
     config.playerlist_usernames = json_input["config.playerlist_usernames"]
     config.ita_ads = json_input["config.ita_ads"]
     config.include_itas = json_input["config.include_itas"]
+    config.topic_id = json_input["config.topic_id"]
 
 
 def save_json():
@@ -141,7 +142,8 @@ def save_json():
         "config.ita_base_damage" : config.ita_base_damage,
         "config.playerlist_usernames" : config.playerlist_usernames,
         "config.ita_ads" : config.ita_ads,
-        "config.include_itas" : config.include_itas
+        "config.include_itas" : config.include_itas,
+        "config.topic_id" : config.topic_id,
     }
     json_file = open(GAMESTATE_JSON_PATH, 'w')
     json.dump(to_save, json_file, indent=4, default=queue_encoder)
@@ -241,7 +243,7 @@ def load_everything_and_convert_to_game():
     #         print(e)
 
     import main # here to avoid circular import
-    asyncio.run(main.start_all_components(reset_globals=False))
+    asyncio.run(main.start_all_components(reset_globals=False, update_latest_posts_in_role_pms=True))
 
 
 if __name__ == "__main__":

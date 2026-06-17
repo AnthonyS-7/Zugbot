@@ -6,6 +6,7 @@ import asyncio
 import config
 from typing import TYPE_CHECKING
 import time
+import queue
 
 GAMESTATE_NONE_ERROR_MESSAGE = "The gamestate hasn't been initialized yet. This shouldn't happen except right when Zugbot starts up."
 reset_itas_last_time_of_use = 0
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     import player
 
 feedback_to_send: 'dict[player.Player, str]' = dict()
+queue_of_posts_for_hosting_discord = queue.Queue()
 
 if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     with open("discord_token.txt", 'r') as token_file:
@@ -80,21 +82,60 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     @app_commands.describe(current_player_username="The username of the player currently in the game.", new_player_username="The username of the person to sub into the game")
     async def sub(interaction: discord.Interaction, current_player_username: str, new_player_username: str):
         await interaction.response.defer()
-        current_player_obj = await verify_player(interaction, current_player_username)
-        if current_player_obj is None:
-            return
-        if modbot.gamestate is None:
-            await interaction.followup.send(GAMESTATE_NONE_ERROR_MESSAGE)
-            return
-        from roles_folder import host
-        result = await host.do_substitution(None, modbot.gamestate, None, current_player_obj, new_player_username)
-        await interaction.followup.send(result)
+        try:
+            current_player_obj = await verify_player(interaction, current_player_username)
+            if current_player_obj is None:
+                return
+            if modbot.gamestate is None:
+                await interaction.followup.send(GAMESTATE_NONE_ERROR_MESSAGE)
+                return
+            from roles_folder import host
+            result = await host.do_substitution(None, modbot.gamestate, None, current_player_obj, new_player_username)
+            await interaction.followup.send(result)
+        except Exception as e:
+            import traceback
+            await interaction.followup.send(f"**{type(e).__name__}**: {e}\n```{traceback.format_exc()}```")
+
 
     @client.tree.command(name="toggle_itas", description="Toggle ITAs on or off.", guild=discord.Object(id=config.hosting_discord_guild_id))
     async def toggle_itas(interaction: discord.Interaction):
         config.include_itas = not config.include_itas
         await interaction.response.defer()
         await interaction.followup.send(f"ITAs have been turned {'on' if config.include_itas else 'off'}.")
+
+    @client.tree.command(name="spooky_role_change_cooldowns", description="Change the cooldowns on Spooky's abilities (necessary if bot has to be restarted).", guild=discord.Object(id=config.hosting_discord_guild_id))
+    @app_commands.describe(suggestions_already_used="Whether the Suggestions ability has been used today.", sow_doubt_already_used="Whether the Sow Doubt ability has been used this game.")
+    async def spooky_role_reset_cooldowns(interaction: discord.Interaction, suggestions_already_used: bool, sow_doubt_already_used: bool):
+        global suggestions_day_of_last_use
+        global sow_doubt_used
+        await interaction.response.defer()
+
+        if modbot.gamestate is None:
+            await interaction.followup.send(GAMESTATE_NONE_ERROR_MESSAGE)
+            return
+        
+        if suggestions_already_used:
+            suggestions_day_of_last_use = modbot.gamestate.phase_count
+        else:
+            suggestions_day_of_last_use = 0
+        sow_doubt_used = sow_doubt_already_used
+
+        await interaction.followup.send(f"Spooky's Suggestions ability marked as {'on' if suggestions_already_used else 'off'} cooldown. \n" +
+                                        f"Spooky's Sow Doubt ability marked as {'on' if sow_doubt_already_used else 'off'} cooldown.")
+        
+    @client.tree.command(name="lol", description="Toggle whether this player has the lol role.", guild=discord.Object(id=config.hosting_discord_guild_id))
+    @app_commands.describe(lol_username="The username of the player being marked as lol.")
+    async def lol(interaction: discord.Interaction, lol_username: str):
+        await interaction.response.defer()
+        player_obj = await verify_player(interaction, lol_username)
+        if player_obj is None:
+            return
+        if 'lol' not in player_obj.passives.defensive_ita_tags:
+            await interaction.followup.send(f"Player {player_obj.username} has been given the lol role.")
+            player_obj.passives.defensive_ita_tags.add('lol')
+        else:
+            await interaction.followup.send(f"The lol role has been removed from Player {player_obj.username}.")
+            player_obj.passives.defensive_ita_tags.discard('lol')
 
     @client.tree.command(name="feedback_send", description="Send out all feedback.", guild=discord.Object(id=config.hosting_discord_guild_id))
     async def feedback_send(interaction: discord.Interaction):
@@ -103,12 +144,13 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
         await interaction.response.defer()
         current_time = time.time()
         if current_time - send_feedback_last_time_of_use > 120:
-            await interaction.followup.send("Are you SURE you want to send out feedback? Run the command again to confirm.")
+            await interaction.followup.send("Are you SURE you want to send out feedback? Run the command again to confirm. Note the command will take a while to finish.")
             send_feedback_last_time_of_use = current_time
             return
         import fol_interface
         for player_obj in feedback_to_send:
             fol_interface.send_message(feedback_to_send[player_obj], player_obj.username)
+            await asyncio.sleep(2)
         feedback_to_send = dict()
         await interaction.followup.send("Sent all feedback.")
 
@@ -218,7 +260,6 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             await interaction.followup.send(f"Set player with **The Vampire's Curse's** to {marluna_player_object.username}. \n"
                                             f"Set attacking player to {attacker_player_object.username}. \n"
                                             f"Set defending player to {defender_player_object.username}. \n"
-                                            f"Reset the check for whether the vampire has been healed today. \n"
                                             f"NOTE: Any other existing vampire tags / effects have been cleared by this command.")
         except Exception as e:
             import traceback
@@ -253,16 +294,18 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     async def view_ita_tags(interaction: discord.Interaction):
         await interaction.response.defer()
         if modbot.gamestate is not None:
-            result_string = "# All ITA tags: \n"
+            result_strings = ["# All ITA tags:"]
             for player_obj in modbot.gamestate.current_players:
                 this_players_result = ''
                 for tag in player_obj.passives.offensive_ita_tags:
                     this_players_result += f"Attacking tag: {tag} : {player_obj.passives.offensive_ita_tags[tag]}. \n"
                 for tag in player_obj.passives.defensive_ita_tags:
-                    this_players_result += f"Defending tag: {tag}. \n"
+                    if tag != "full_health":
+                        this_players_result += f"Defending tag: {tag}. \n"
                 if this_players_result != '':
-                    result_string += f"## {player_obj.username}: \n {this_players_result}"
-            await interaction.followup.send(result_string)
+                    result_strings.append(f"## {player_obj.username}: \n {this_players_result}")
+            for msg in condense_messages(result_strings):
+                await interaction.followup.send(msg)
         else:
             await interaction.followup.send(GAMESTATE_NONE_ERROR_MESSAGE)
 
@@ -409,6 +452,20 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             await interaction.followup.send(f"Changed health of {player_obj.username} to {value}. \n"
                                                     "**If you killed or revived a player with this command, ensure you fix the votecount!**")
 
+    @client.tree.command(name="change_main_thread", description="Change the ID of the main thread.", guild=discord.Object(id=config.hosting_discord_guild_id))
+    @app_commands.describe(new_id="The new topic ID of the main thread.")
+    async def change_main_thread(interaction: discord.Interaction, new_id: int):
+        await interaction.response.defer()
+        if new_id < 1:
+            await interaction.followup.send("Invalid topic ID.")
+            return
+        import fol_interface
+        if not await fol_interface.check_if_new_main_thread_id_is_valid(new_id):
+            await interaction.followup.send("This topic is not valid! (Rarely, connection issues can make a valid topic ID give this message too.)")
+            return
+        config.topic_id = new_id
+        await interaction.followup.send(f"Successfully made the main thread have ID {new_id}.")
+
     @client.tree.command(name="max_health", description="Change a player's health.", guild=discord.Object(id=config.hosting_discord_guild_id))
     @app_commands.describe(player_username="The player whose state is being modified", value="The new max health value")
     async def max_health(interaction: discord.Interaction, player_username: str, value: int):
@@ -498,7 +555,7 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             import traceback
             await interaction.followup.send(f"**{type(e).__name__}**: {e}\n```{traceback.format_exc()}```")
 
-    @client.tree.command(name="reset_itas", description="Reset the ITAs held by all players. This should be run at every day start.",
+    @client.tree.command(name="reset_itas", description="Reset the ITAs held by all players. This must be run at every day start.",
                         guild=discord.Object(id=config.hosting_discord_guild_id))
     @app_commands.describe()
     async def reset_itas(interaction: discord.Interaction):
@@ -517,6 +574,7 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
         for player_obj in modbot.gamestate.original_players:
             player_obj.silent_ita_items = []
             player_obj.ita_items = [player.ITAItem()]
+            player_obj.passives.number_of_itas_taken = 0
         await interaction.followup.send("ALL ITAs have been reset.\n"
                                                 "All players have exactly one shot of their ITA, which does the default base damage."
                                                 "\nAny previously existing ITAs have been deleted.")
@@ -878,10 +936,45 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
     async def on_game_end():
         await client.close()
 
+    def condense_messages(messages: list[str]) -> list[str]:
+        """
+        This takes a list of messages to send, and joins them into messages that are less than 2000 characters.
+
+        If a single input message is 2000 characters or more, it is truncated to 1999 characters.
+        """
+        result_list = []
+        newest_result_string = ''
+        for message in messages:
+            if len(newest_result_string) + len(message) + 1 < 2000:
+                newest_result_string += "\n" + message
+            elif len(message) < 2000:
+                result_list.append(newest_result_string)
+                newest_result_string = message
+            else:
+                result_list.append(newest_result_string)
+                result_list.append(message[0:1999])
+                newest_result_string = ''
+        if newest_result_string:
+            result_list.append(newest_result_string)
+        return result_list
+
+    async def hosting_discord_pipeline():
+        global queue_of_posts_for_hosting_discord
+        while config.send_messages_to_hosting_discord:
+            messages_to_send = []
+            while not queue_of_posts_for_hosting_discord.empty():
+                messages_to_send.append(queue_of_posts_for_hosting_discord.get())
+            if len(messages_to_send) != 0:
+                channel_to_send_to = await client.fetch_channel(config.hosting_discord_channel_id_for_output)
+                for message_to_send in condense_messages(messages_to_send):
+                    await channel_to_send_to.send(message_to_send) # type: ignore
+                    await asyncio.sleep(config.delay_between_discord_host_logs)
+            else:
+                await asyncio.sleep(config.delay_between_discord_host_logs)
+
     async def send_message_to_hosting_discord(message_to_send: str):
         if config.send_messages_to_hosting_discord:
-            channel_to_send_to = await client.fetch_channel(config.hosting_discord_channel_id_for_output)
-            await channel_to_send_to.send(message_to_send) # type: ignore
+            queue_of_posts_for_hosting_discord.put(message_to_send)
 
 
     async def start_discord_bot():
