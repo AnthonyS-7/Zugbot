@@ -1,8 +1,8 @@
 url: "https://www.fortressoflies.com" # Should not end with /
 username: "Zugbot"
 
-game_name: "FAM6 Testing"
-game_start_time: '2026-06-17 04:30' # If not '', then the game will start at this time. Also, all phases
+game_name: "FAM6"
+game_start_time: '2026-06-18 17:00' # If not '', then the game will start at this time. Also, all phases
     # will have start and end times calculated off of this time. This is in 24 hour time. This should be in the timezone
     # specified in utc_offset.
     # Example format: "2024-08-13 08:00"
@@ -10,93 +10,98 @@ utc_offset: "-04:00"
 
 host_usernames:
 - Zugzwang
-- Zwischenzug
+- May
+- Ash
+- Arete
+- Zone_Q11
+- tutuu
+- Chloe
 
 playerlist_usernames:
-- Zug
-- zug_alt_0
-- zug_alt_1
-- zug_alt_2
-- zug_alt_3
-- zug_alt_4
-- zug_alt_5
-- zug_alt_6
-- zug_alt_7
-- zug_alt_8
-- zug_alt_9
-- zug_alt_10
-- zug_alt_11
-- zug_alt_12
-- zug_alt_13
-- zug_alt_14
-- zug_alt_15
-- zug_alt_16
-- zug_alt_17
-- zug_alt_18
-- zug_alt_19
-- zug_alt_20
-- zug_alt_21
-- zug_alt_22
-- zug_alt_23
-- zug_alt_24
-- zug_alt_25
-- zug_alt_26
-- zug_alt_27
-- zug_alt_28
-- zug_alt_29
-- zug_alt_30
-- zug_alt_31
-- zug_alt_32
-- zug_alt_33
-- zug_alt_34
-- zug_alt_35
-- zug_alt_36
-- zug_alt_37
-- zug_alt_38
-- zug_alt_39
-- zug_alt_40
-- zug_alt_41
-- zug_alt_42
-- zug_alt_43
-- zug_alt_44
-- zug_alt_45
-- zug_alt_46
-- zug_alt_47
-- NotAZug
-- NotAZugAlt
-- zug_alt_account
-- secret_cookie_thread
-- Eigenzug
-- Eigenalt
-- Unzug
-- Zqgzwqng
-- AlsoZug
-- wrongboy
-- famtest1
-- famtest2
-- famtest3
-- famtest4
-- famtest5
+- wlwillow
+- Cape90
+- Arctic
+- Linda
+- Ranta
+- Kiiruma
+- annika
+- HeroShotter9000
+- Ishmael
+- YoubutWorse
+- Amelia
+- Leafia
+- Daeron
+- jason.mrrown
+- Wazza
+- clarameow
+- Memekingpizza
+- boredofboredom
+- SherlockHolmes
+- Jinrou
+- Kelsier
+- FreezinIce
+- Marluxion
+- benguinedparbecue
+- Italy
+- iamagummybear
+- Kyubey
+- nutella
+- Marluna
+- Marshal
+- mimi
+- soweli
+- Wisdom
+- Selkie
+- Mistyx
+- PortalRadio
+- Apocryphal
+- meow
+- Lucid_Daydream
+- Hazardwaste
+- Relm
+- asherlark
+- neil_the_eel
+- hiii
+- SirDerpsAlot
+- diafiasco
+- Lissa
+- Pqwerty
+- Chomps
+- Magnus
+- thepigeonnyc
+- ATNoName
+- Achromatic
+- autumnseas
+- gori
+- beancat
+- bystander
+- RealThomYorke
+- Ruby
+- BradLand
+- ACE
+- Baudib1
+- spookycat27
+- Ephemera
 
-topic_id: 15005 # The topic ID of the game thread
+topic_id: 16503 # The topic ID of the game thread
 
 mafia_discord_link: ''
 rand_roles: false # Whether to rand roles. Set to true in games! This option is here for easier debugging.
 
-day_length: 120 # In minutes
-night_length: 2 # In minutes
+day_length: 1440 # In minutes
+night_length: 1440 # In minutes
 action_deadline: 1 # Actions can no longer be submitted this many minutes before phase change. Should be at least 1.
 
 setup_name: 'fam6' # Must exactly match the name in the setups folder
 
 include_itas: true # If true, ITA windows will exist.
 ita_windows: # Each number represents the number of minutes past SOD.
-    - start: 1
-      end: 30
-    - start: 31
-      end: 60
-    - start: 61
-      end: 119
+    - start: 240
+      end: 300
+    - start: 600
+      end: 660
+    - start: 1200
+      end: 1260
 ita_base_damage: 10 # The base damage of ITAs
 ita_ads: true # Whether to have 'ads' in ITAs.
 
