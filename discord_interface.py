@@ -918,6 +918,26 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
         fam6.set_spooky_player(spooky_obj)
         await interaction.followup.send(f"Set Spooky to {spooky_obj.username}.")
 
+    @client.tree.command(name="votecount", description="For hosts to summon votecounts.", guild=discord.Object(id=config.hosting_discord_guild_id))
+    @app_commands.describe()
+    async def votecount(interaction: discord.Interaction):
+        await interaction.response.defer()
+        if modbot.gamestate is None:
+            await interaction.followup.send(GAMESTATE_NONE_ERROR_MESSAGE)
+            return
+        if not modbot.gamestate.is_day:
+            await interaction.followup.send("You can only call votecounts during the day.")
+            return
+        if not modbot.game_started:
+            await interaction.followup.send("The game hasn't started yet! You can't call a votecount now.")
+            return
+        if not modbot.continue_posting_vcs:
+            await interaction.followup.send("modbot.continue_posting_vcs is False. This means the game is probably over.")
+            return
+        import fol_interface
+        await fol_interface.post_votecount(nominated_players=modbot.gamestate.get_all_nominated_players(), nominator_to_nominee_dict=modbot.gamestate.get_nominations())
+        await interaction.followup.send("Put your votecount into the thread!")
+
     async def verify_player(interaction: discord.Interaction, player_username: str, living_only=False) -> 'player.Player | None':
         if modbot.gamestate is None:
             await interaction.followup.send(GAMESTATE_NONE_ERROR_MESSAGE)
@@ -983,6 +1003,8 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             print("Starting discord client!")
             await client.start(token=token)
             client_started = True
+
+
 
     def turn_bot_off():
         """

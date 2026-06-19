@@ -40,7 +40,7 @@ def generate_rolelist() -> list[Callable[[str], "player.Player"]]:
 
 def get_setup():
     return setup.Setup(game_name="fam6",
-                allow_no_exe=False,
+                allow_no_exe=True,
                 playercount=64,
                 get_rolelist=generate_rolelist,
                 disable_nightkill=True,

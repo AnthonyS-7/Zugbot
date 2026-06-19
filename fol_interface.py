@@ -353,7 +353,7 @@ def resolve_substring_alias(voted_player: str, playerlist: list[str], for_voteco
     """
     if voted_player == NOT_VOTING and for_votecount:
         return NOT_VOTING
-    if voted_player in NO_EXE_ALIASES and for_votecount:
+    if voted_player.lower() in NO_EXE_ALIASES and for_votecount:
         return NO_EXE
     for player in playerlist:
         if voted_player.lower() == player.lower():
