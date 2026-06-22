@@ -436,7 +436,10 @@ async def post_ita_window_announcements():
                 if config.include_itas:
                     fol_interface.create_post(f"# ITA Window {ita_window_counter} has begun! Use /ITA [playername] @Zugbot to shoot. \n"
                                             "- You *must* ping Zugbot for your shot to be registered. \n" \
-                                            "- Hosts will post flips manually. \n")
+                                            "- Hosts will post flips manually. \n" \
+                                            "- Do not bold your ITA! This may cause it to be ignored. \n "
+                                            "- Zugbot automatically does not use your shot if you ITA a player who has died to earlier ITAs. \n" \
+                                            "- Silent ITAs are also automated. If you have a Silent ITA, use /ITA [player] in your PM to use it. \n")
                     await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} start announcement.")
                 await wait_for_time(ita_window_end_time)
                 if config.include_itas:

@@ -464,7 +464,8 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             await interaction.followup.send("This topic is not valid! (Rarely, connection issues can make a valid topic ID give this message too.)")
             return
         config.topic_id = new_id
-        await interaction.followup.send(f"Successfully made the main thread have ID {new_id}.")
+        modbot.posts_in_thread_at_last_vc = 1
+        await interaction.followup.send(f"Successfully made the main thread have ID {new_id}, and reset {modbot.posts_in_thread_at_last_vc} to 1.")
 
     @client.tree.command(name="max_health", description="Change a player's health.", guild=discord.Object(id=config.hosting_discord_guild_id))
     @app_commands.describe(player_username="The player whose state is being modified", value="The new max health value")

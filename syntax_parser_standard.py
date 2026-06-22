@@ -10,6 +10,10 @@ SYNTAX_PARSER_NONNEGATIVE_INT = (r"([0-9]+)", 0)
 SYNTAX_PARSER_PLAYERNAME = (r"([^ \\\n]+)", 1)
 SYNTAX_PARSER_NO_SPACE_STRING = (r"([^ \\\n]+)", 2) # Numbers are just so that these all do not equal eachother
 
+playername_cleaner = re.compile(r"[^A-Za-z0-9\-\._]") # everything not in the list is a character that can't be
+    # in a Discourse username
+    # TODO: put this in constants.py because the same thing is used in fol_interface.
+
 class SyntaxParser:
     def __init__(self, command_name: str, parameter_list: list[tuple[str, int]] | None, include_whole_post=False) -> None:
         self.command_name = command_name
@@ -20,7 +24,7 @@ class SyntaxParser:
         re_string = rf"/{self.command_name}"
 
         for parameter, discard in self.parameter_list:
-            re_string += " " + parameter
+            re_string += " +" + parameter
         print(f"Looking for {re_string=}")
         re_parser = re.compile(re_string, re.IGNORECASE)
         
@@ -33,6 +37,7 @@ class SyntaxParser:
             this_parameter = re_result.group(num + 1)
             if self.parameter_list[num] == SYNTAX_PARSER_PLAYERNAME:
                 assert modbot.gamestate is not None
+                this_parameter = re.sub(playername_cleaner, '', this_parameter)
                 this_parameter = modbot.resolve_name(this_parameter)
                 this_parameter = modbot.gamestate.get_player_object_living_players_only(this_parameter)
                 if this_parameter is None:
