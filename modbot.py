@@ -400,18 +400,19 @@ def add_player_to_player_lists(new_player: str):
 
 
 
-async def wait_for_time(time_datetime: datetime.datetime):
+async def wait_for_time(time_datetime: datetime.datetime) -> float:
     """
-    Given a datetime, sleeps until that time is reached.
+    Given a datetime, sleeps until that time is reached. Returns the number of seconds it was told to sleep.
     """
     if time_datetime.tzinfo == None or time_datetime.tzinfo.utcoffset(time_datetime) == None: # if input time is naive
         seconds_to_sleep = (time_datetime - datetime.datetime.now()).total_seconds()
     else:
         seconds_to_sleep = (time_datetime - datetime.datetime.now(datetime.UTC)).total_seconds()
     if seconds_to_sleep <= 0:
-        return None
+        return seconds_to_sleep
     print(f"Sleeping for {seconds_to_sleep} seconds")
     await asyncio.sleep(seconds_to_sleep)
+    return seconds_to_sleep
 
 async def post_ita_window_announcements():
     while gamestate is None or game_started == False:
@@ -432,8 +433,8 @@ async def post_ita_window_announcements():
             for ita_window_times in config.ita_windows:
                 ita_window_start_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["start"])
                 ita_window_end_time = phase_start_time + datetime.timedelta(minutes=ita_window_times["end"])
-                await wait_for_time(ita_window_start_time)
-                if config.include_itas:
+                seconds_slept = await wait_for_time(ita_window_start_time)
+                if config.include_itas and seconds_slept > -10:
                     fol_interface.create_post(f"# ITA Window {ita_window_counter} has begun! Use /ITA [playername] @Zugbot to shoot. \n"
                                             "- You *must* ping Zugbot for your shot to be registered. \n" \
                                             "- Hosts will post flips manually. \n" \
@@ -441,8 +442,8 @@ async def post_ita_window_announcements():
                                             "- Zugbot automatically does not use your shot if you ITA a player who has died to earlier ITAs. \n" \
                                             "- Silent ITAs are also automated. If you have a Silent ITA, use /ITA [player] in your PM to use it. \n")
                     await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} start announcement.")
-                await wait_for_time(ita_window_end_time)
-                if config.include_itas:
+                seconds_slept = await wait_for_time(ita_window_end_time)
+                if config.include_itas and seconds_slept > -10:
                     fol_interface.create_post(f"# ITA Window {ita_window_counter} has ended!")
                     await discord_interface.send_message_to_hosting_discord(f"Posted ITA window {ita_window_counter} end announcement.")
                 ita_window_counter += 1
@@ -484,7 +485,6 @@ async def start_game() -> bool:
 
     print("About to decide roles.")
     if config.rand_roles:
-        random.seed(time.time())
         random.shuffle(rolelist)
 
     if len(config.playerlist_usernames) != config.playercount:

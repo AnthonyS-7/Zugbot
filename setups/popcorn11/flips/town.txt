@@ -1,0 +1,3 @@
+# [color=00ff00] Town [/color]
+
+Eliminate all threats to the town, and ensure at least one town-aligned player remains alive.

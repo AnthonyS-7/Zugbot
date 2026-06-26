@@ -159,7 +159,6 @@ class GameState:
 
         The randomized order ensures that no role/alignment-indicative information can slip through as a result of this method.
         """
-        random.seed(time.time())
         result = []
         for player in self.current_players:
             result.append(player.username)
@@ -172,7 +171,6 @@ class GameState:
 
         The randomized order ensures that no role/alignment-indicative information can slip through as a result of this method.
         """
-        random.seed(time.time())
         result = []
         for player in self.original_players:
             result.append(player.username)

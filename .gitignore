@@ -7,3 +7,4 @@ roles_folder/__pycache__/roles_exceptions.cpython-312.pyc
 dependencies.md
 config_to_yaml_temp.py
 config_old.txt
+/.vscode

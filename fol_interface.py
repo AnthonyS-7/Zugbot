@@ -388,7 +388,6 @@ def start_day(living_players: list[str], day_count: int):
     global to_post_cache
     
     if not config.disable_day_and_night_start_announcements:
-        random.seed(time.time())
         living_players = living_players.copy()
         random.shuffle(living_players)
 
@@ -494,7 +493,6 @@ def votecount_to_elimination(votecount_dict):
         return elimination[0], False
     if NO_EXE in elimination and config.no_exe_wins_ties: 
         return NO_EXE, False
-    random.seed(time.time())
     print(f"There was a tie! The tied votable options were: {elimination}")
     return random.choice(elimination), True
     
