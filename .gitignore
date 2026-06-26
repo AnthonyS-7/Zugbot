@@ -8,3 +8,4 @@ dependencies.md
 config_to_yaml_temp.py
 config_old.txt
 /.vscode
+/__pycache__
