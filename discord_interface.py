@@ -939,6 +939,23 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
         await fol_interface.post_votecount(nominated_players=modbot.gamestate.get_all_nominated_players(), nominator_to_nominee_dict=modbot.gamestate.get_nominations())
         await interaction.followup.send("Put your votecount into the thread!")
 
+    @client.tree.command(name="votecount_parameters", description="For hosts to modify the auto-VC rate.", guild=discord.Object(id=config.hosting_discord_guild_id))
+    @app_commands.describe(minutes="The number of minutes to wait between votecounts.", posts="The number of posts to wait between votecounts.")
+    async def votecount_parameters(interaction: discord.Interaction, minutes: int, posts: int):
+        await interaction.response.defer()
+        if minutes < 1:
+            await interaction.followup.send("You must choose a positive integer for minutes!")
+            return
+        if minutes > 60:
+            await interaction.followup.send("You cannot do a delay of more than 60 minutes!")
+            return
+        if posts < 10:
+            await interaction.followup.send("You must choose an integer that is at least 10 for posts!")
+            return
+        config.votecount_post_interval = posts
+        config.votecount_time_interval = minutes
+        await interaction.followup.send(f"Set minutes to {minutes} and posts to {posts}.")
+
     async def verify_player(interaction: discord.Interaction, player_username: str, living_only=False) -> 'player.Player | None':
         if modbot.gamestate is None:
             await interaction.followup.send(GAMESTATE_NONE_ERROR_MESSAGE)
@@ -952,10 +969,6 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             await interaction.followup.send(f"There is no{' living ' if living_only else ' '}player with the username {player_username}. Action unsuccessful.")
             return None
         return player
-
-    @client.event
-    async def on_game_end():
-        await client.close()
 
     def condense_messages(messages: list[str]) -> list[str]:
         """
@@ -1004,11 +1017,3 @@ if not config.is_botf: # BOTF has no wolfchat, so no Discord integration
             print("Starting discord client!")
             await client.start(token=token)
             client_started = True
-
-
-
-    def turn_bot_off():
-        """
-        Untested.
-        """
-        client.dispatch("on_game_end")
